@@ -21,73 +21,330 @@
 # 护符只在该 GUI 中装备，世界右键不会装备道具或触发主动技能。
 gui:
   # 行数使用 rows 或 row，均可在 1-6 内修改。
-  row: 3
+  row: 6
   permission: qingcharms.gui
-  title: "&8青玉护符装备"
+  title: "&9&l&o灵魂饰品"
   slots:
     # 槽位名称可自由增删；slot/position 或数字名称决定 GUI 位置。
-    helmet:
-      slot: 0
-      id: 98
+    helmet_13:
+      slot: 13
+      id: 421
       id_data: 0
-      name: "&a头盔饰品槽"
+      name: "&9&l&o耳环槽"
       lore:
         - "&7左键卸下 | 背包右键装备 | Shift+右键替换"
-      type: 头盔
+      type: 耳环
       action: equip
-    chestplate:
-      slot: 1
-      id: 98
+
+    main_hand_21:
+      slot: 21
+      id: 421
       id_data: 0
-      name: "&a胸甲饰品槽"
+      name: "&9&l&o手环槽"
       lore:
         - "&7左键卸下 | 背包右键装备 | Shift+右键替换"
-      type: 胸甲
+      type: 手环
       action: equip
-    leggings:
-      slot: 2
-      id: 98
+
+    main_hand_23:
+      slot: 23
+      id: 421
       id_data: 0
-      name: "&a护腿饰品槽"
+      name: "&9&l&o戒指槽"
       lore:
         - "&7左键卸下 | 背包右键装备 | Shift+右键替换"
-      type: 护腿
+      type: 戒指
       action: equip
-    boots:
-      slot: 3
-      id: 98
+
+    chestplate_22:
+      slot: 22
+      id: 421
       id_data: 0
-      name: "&a靴子饰品槽"
-      lore:
-        - "&7左键卸下 | 背包右键装备 | Shift+右键替换"
-      type: 靴子
-      action: equip
-    necklace:
-      slot: 4
-      id: 98
-      id_data: 0
-      name: "&a项链饰品槽"
+      name: "&9&l&o项链槽"
       lore:
         - "&7左键卸下 | 背包右键装备 | Shift+右键替换"
       type: 项链
       action: equip
-    sky:
-      slot: 5
-      id: 98
+
+    leggings_31:
+      slot: 31
+      id: 421
       id_data: 0
-      name: "&a天空饰品槽"
+      name: "&9&l&o腰带槽"
       lore:
         - "&7左键卸下 | 背包右键装备 | Shift+右键替换"
-      type: 天空
+      type: 腰带
       action: equip
-    close:
-      slot: 8
-      id: 35
-      id_data: 14
-      name: "&c关闭 GUI"
+
+    boots_40:
+      slot: 40
+      id: 421
+      id_data: 0
+      name: "&9&l&o魂环槽"
       lore:
-        - "&7点击关闭"
-      action: close
+        - "&7左键卸下 | 背包右键装备 | Shift+右键替换"
+      type: 魂环
+      action: equip
+
+    hufu-10:
+      slot: 10
+      id: 421
+      id_data: 0
+      name: "&9&l&o天空护符槽"
+      lore:
+        - "&7左键卸下 | 背包右键装备 | Shift+右键替换"
+      type: 天空护符
+      action: equip
+
+    hufu-19:
+      slot: 19
+      id: 421
+      id_data: 0
+      name: "&9&l&o自然护符槽"
+      lore:
+        - "&7左键卸下 | 背包右键装备 | Shift+右键替换"
+      type: 自然护符
+      action: equip
+
+    hufu-28:
+      slot: 28
+      id: 421
+      id_data: 0
+      name: "&9&l&o幻象护符槽"
+      lore:
+        - "&7左键卸下 | 背包右键装备 | Shift+右键替换"
+      type: 幻象护符
+      action: equip
+
+    hufu-37:
+      slot: 37
+      id: 421
+      id_data: 0
+      name: "&9&l&o神圣护符槽"
+      lore:
+        - "&7左键卸下 | 背包右键装备 | Shift+右键替换"
+      type: 神圣护符
+      action: equip
+
+    baoshi-16:
+      slot: 16
+      id: 421
+      id_data: 0
+      name: "&9&l&o天空宝石槽"
+      lore:
+        - "&7左键卸下 | 背包右键装备 | Shift+右键替换"
+      type: 天空宝石
+      action: equip
+
+    baoshi-25:
+      slot: 25
+      id: 421
+      id_data: 0
+      name: "&9&l&o自然宝石槽"
+      lore:
+        - "&7左键卸下 | 背包右键装备 | Shift+右键替换"
+      type: 自然宝石
+      action: equip
+
+    baoshi-34:
+      slot: 34
+      id: 421
+      id_data: 0
+      name: "&9&l&o幻象宝石槽"
+      lore:
+        - "&7左键卸下 | 背包右键装备 | Shift+右键替换"
+      type: 幻象宝石
+      action: equip
+
+    baoshi-43:
+      slot: 43
+      id: 421
+      id_data: 0
+      name: "&9&l&o神圣宝石槽"
+      lore:
+        - "&7左键卸下 | 背包右键装备 | Shift+右键替换"
+      type: 神圣宝石
+      action: equip
+
+    bk-0:
+      slot: 0
+      id: 160
+      id_data: 11
+      name: "&7&l&o灵魂饰品"
+    bk-1:
+      slot: 1
+      id: 160
+      id_data: 11
+      name: "&7&l&o灵魂饰品"
+    bk-2:
+      slot: 2
+      id: 160
+      id_data: 11
+      name: "&7&l&o灵魂饰品"
+    bk-3:
+      slot: 3
+      id: 160
+      id_data: 11
+      name: "&7&l&o灵魂饰品"
+    bk-4:
+      slot: 4
+      id: 160
+      id_data: 11
+      name: "&7&l&o灵魂饰品"
+    bk-5:
+      slot: 5
+      id: 160
+      id_data: 11
+      name: "&7&l&o灵魂饰品"
+    bk-6:
+      slot: 6
+      id: 160
+      id_data: 11
+      name: "&7&l&o灵魂饰品"
+    bk-7:
+      slot: 7
+      id: 160
+      id_data: 11
+      name: "&7&l&o灵魂饰品"
+    bk-8:
+      slot: 8
+      id: 160
+      id_data: 11
+      name: "&7&l&o灵魂饰品"
+    bk-45:
+      slot: 45
+      id: 160
+      id_data: 11
+      name: "&7&l&o灵魂饰品"
+    bk-46:
+      slot: 46
+      id: 160
+      id_data: 11
+      name: "&7&l&o灵魂饰品"
+    bk-47:
+      slot: 47
+      id: 160
+      id_data: 11
+      name: "&7&l&o灵魂饰品"
+    bk-48:
+      slot: 48
+      id: 160
+      id_data: 11
+      name: "&7&l&o灵魂饰品"
+    bk-49:
+      slot: 49
+      id: 160
+      id_data: 11
+      name: "&7&l&o灵魂饰品"
+    bk-50:
+      slot: 50
+      id: 160
+      id_data: 11
+      name: "&7&l&o灵魂饰品"
+    bk-51:
+      slot: 51
+      id: 160
+      id_data: 11
+      name: "&7&l&o灵魂饰品"
+    bk-52:
+      slot: 52
+      id: 160
+      id_data: 11
+      name: "&7&l&o灵魂饰品"
+    bk-53:
+      slot: 53
+      id: 160
+      id_data: 11
+      name: "&7&l&o灵魂饰品"
+
+    bkl-9:
+      slot: 9
+      id: 101
+      name: "&7&l&o灵魂饰品"
+    bkl-11:
+      slot: 11
+      id: 101
+      name: "&7&l&o灵魂饰品"
+    bkl-12:
+      slot: 12
+      id: 101
+      name: "&7&l&o灵魂饰品"
+    bkl-14:
+      slot: 14
+      id: 101
+      name: "&7&l&o灵魂饰品"
+    bkl-15:
+      slot: 15
+      id: 101
+      name: "&7&l&o灵魂饰品"
+    bkl-17:
+      slot: 17
+      id: 101
+      name: "&7&l&o灵魂饰品"
+    bkl-18:
+      slot: 18
+      id: 101
+      name: "&7&l&o灵魂饰品"
+    bkl-20:
+      slot: 20
+      id: 101
+      name: "&7&l&o灵魂饰品"
+    bkl-24:
+      slot: 24
+      id: 101
+      name: "&7&l&o灵魂饰品"
+    bkl-26:
+      slot: 26
+      id: 101
+      name: "&7&l&o灵魂饰品"
+    bkl-27:
+      slot: 27
+      id: 101
+      name: "&7&l&o灵魂饰品"
+    bkl-29:
+      slot: 29
+      id: 101
+      name: "&7&l&o灵魂饰品"
+    bkl-30:
+      slot: 30
+      id: 101
+      name: "&7&l&o灵魂饰品"
+    bkl-32:
+      slot: 32
+      id: 101
+      name: "&7&l&o灵魂饰品"
+    bkl-33:
+      slot: 33
+      id: 101
+      name: "&7&l&o灵魂饰品"
+    bkl-35:
+      slot: 35
+      id: 101
+      name: "&7&l&o灵魂饰品"
+    bkl-36:
+      slot: 36
+      id: 101
+      name: "&7&l&o灵魂饰品"
+    bkl-38:
+      slot: 38
+      id: 101
+      name: "&7&l&o灵魂饰品"
+    bkl-39:
+      slot: 39
+      id: 101
+      name: "&7&l&o灵魂饰品"
+    bkl-41:
+      slot: 41
+      id: 101
+      name: "&7&l&o灵魂饰品"
+    bkl-42:
+      slot: 42
+      id: 101
+      name: "&7&l&o灵魂饰品"
+    bkl-44:
+      slot: 44
+      id: 101
+      name: "&7&l&o灵魂饰品"
 
 # 独立护符背包，与装备 GUI 分开。
 charm-bag:
