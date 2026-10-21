@@ -6,12 +6,6 @@ command:
     no-permission: "&c你没有权限打开饰品 GUI。"
     player-only: "&c只有玩家可以打开饰品 GUI。"
   no-permission: "&c你没有权限使用该命令。"
-  open:
-    no-permission: "&c你没有权限查看其他玩家的饰品背包。"
-    player-only: "&c只有玩家可以打开饰品背包。"
-    usage: "&c用法：/qc open <player>"
-    player-offline: "&c玩家不在线：{0}"
-    success: "&a正在查看 {0} 的饰品背包，可直接取出或放入护符。"
   reload:
     no-permission: "&c你没有权限重载配置。"
     success: "&aQingCharms 配置已重载。"
@@ -38,7 +32,7 @@ command:
   list:
     header: "&6当前已配置护符："
     empty: "&7（暂无）"
-    entry: "&8- &e{0} &8| &7{1} &8| &b{2} &8| &d{3} &8| {4}"
+    entry: "&8- &e{0} &8| &7{1} &8| &d{2} &8| {3}"
     entry-enabled: "&a启用"
     entry-disabled: "&7禁用"
     qc-items: "&aqcItems"
@@ -52,38 +46,7 @@ command:
     none: "&8（无）"
   admin:
     no-permission: "&c你没有权限管理护符。"
-  add:
-    usage: "&c用法：/qc add <id> <物品|ID[:data]> [类型]"
-    invalid-id: "&cID 只能包含小写字母、数字、下划线和连字符，长度为 1-32。"
-    already-exists: "&c护符 {0} 已经存在。"
-    invalid-material: "&c无效的 Material：{0}"
-    invalid-data: "&c无效的 data：{0}（可选：-1 或 0-{1}）"
-    invalid-type: "&ctype 不能为空；可以使用 NONE 或自定义类型，例如 项链、手饰、腰带"
-    invalid-rarity: "&c无效的稀有度：{0}（可选：COMMON、RARE、EPIC、LEGENDARY）"
-    success: "&a护符 {0} 已添加。"
-  delete:
-    usage: "&c用法：/qc remove <id>"
-    success: "&a护符 {0} 已删除。"
   not-found: "&c找不到护符：{0}"
-  modify:
-    usage: "&c用法：/qc set <id> <字段> <值>"
-    fields: "&7字段：material、data、rarity、name、permission、enabled、lore、type、equip-lore"
-    invalid-material: "&c无效的 Material：{0}"
-    invalid-data: "&c无效的 data：{0}（可选：-1 或 0-{1}）"
-    invalid-data-clear: "&c无效的 data：{0}（可选：clear、-1 或 0-{1}）"
-    invalid-type: "&ctype 不能为空；可以使用 NONE 或自定义类型，例如 项链、手饰、腰带"
-    invalid-rarity: "&c无效的稀有度：{0}"
-    invalid-enabled: "&cenabled 必须是 true 或 false。"
-    lore-set-usage: "&c用法：/qc set <id> lore set <文本>"
-    lore-add-usage: "&c用法：/qc set <id> lore add <文本>"
-    invalid-lore-action: "&clore 操作必须是 add、set 或 clear。"
-    unknown-field: "&c未知字段：{0}"
-    success: "&a护符 {0} 已修改。"
-    save-failed: "&c保存护符定义失败，请查看控制台。"
-  toggle:
-    usage: "&c用法：/qc {0} <id>"
-    enabled: "&a护符 {0} 已启用。"
-    disabled: "&7护符 {0} 已禁用。"
   export:
     usage: "&c用法：/qc export <id> [类型] [-f]"
     invalid-id: "&cID 只能包含小写字母、数字、下划线和连字符，长度为 1-32。"
@@ -126,27 +89,20 @@ command:
     no-space: "&c{0} 的背包空间不足，无法发放护符。"
     success: "&a已向 {0} 发放护符 {1}。"
   help:
-    header: "&6QingCharms 命令帮助"
+    header: "&6QingCharms青玉 命令帮助"
     author: "&8作者：&fPyTsING柏青 &8| &7QQ：&f3439329934"
     help: "&8- &e/qc help &7显示帮助"
     list: "&8- &e/qc list &7查看护符列表"
     reload: "&8- &e/qc reload &7重载配置"
     status: "&8- &e/qc status &7查看运行状态"
     gui: "&8- &e/qc gui &7打开饰品装备 GUI"
-    bag: "&8- &e/qc bag &7打开护符背包"
-    open: "&8- &e/qc open <player> &7查看并管理在线玩家的护符背包"
     build: "&8- &e/qc build &7查看职业推荐和当前构筑"
-    add: "&8- &e/qc add <id> <物品|ID[:data]> [类型] &7添加护符"
-    delete: "&8- &e/qc remove <id> &7删除护符"
-    modify: "&8- &e/qc set <id> <字段> <值> &7修改护符"
-    toggle: "&8- &e/qc on|off <id> &7启用/禁用护符"
     give: "&8- &e/qc give <id> [player] &7发放护符物品"
     export: "&8- &e/qc export <id> [类型] [-f] &7将手中物品导出到 qcItems 并签名"
     check: "&8- &e/qc check &7检查手持物品为什么装不上"
     save: "&8- &e/qc save &7强制保存玩家数据"
     backup: "&8- &e/qc backup &7强制备份玩家数据"
     types: "&7type 支持 NONE 或任意自定义类型，例如 项链、手饰、腰带；物品 Lore 必须包含对应 type"
-    aliases: "&7兼容别名：delete、modify、enable、disable、gui"
 
 build:
   class-restricted: "&c该道具只能由对应职业装备：{0}"
@@ -178,17 +134,6 @@ charm:
     class-any: "&c只有 {0} 中的任意职业可以装备该道具。"
     revalidation-removed: "&c配置重载后该护符不再满足要求，已卸下。"
 
-charm-bag:
-  no-permission: "&c你没有权限使用护符背包。"
-  storage-error: "&c护符背包暂时不可用，道具未发生变化。"
-  not-charm: "&c该物品不是可存入的护符。"
-  not-found: "&c找不到该护符。"
-  deposit:
-    success: "&a护符已存入背包。"
-    full: "&c护符背包已满。"
-  withdraw:
-    success: "&a护符已取出。"
-    no-space: "&c普通背包空间不足。"
 progression:
   no-permission: "&c你没有权限操作护符成长。"
   disabled: "&c护符成长系统当前已禁用。"

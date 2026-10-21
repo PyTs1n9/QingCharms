@@ -61,10 +61,6 @@ public final class ConfigManager {
         if (guiCandidate.getConfigurationSection("gui") == null) {
             return PreparedReload.failed("invalid or missing gui section in gui.yml");
         }
-        if (guiCandidate.contains("charm-bag")
-                && guiCandidate.getConfigurationSection("charm-bag") == null) {
-            return PreparedReload.failed("invalid charm-bag section in gui.yml");
-        }
 
         YamlUtils.LoadResult classesResult =
                 YamlUtils.loadChecked(classesFile, plugin.getLogger());
@@ -217,8 +213,7 @@ public final class ConfigManager {
 
         YamlConfiguration legacy = legacyResult.getConfiguration();
         boolean hasGui = legacy.isConfigurationSection("gui");
-        boolean hasBag = legacy.isConfigurationSection("charm-bag");
-        if (!hasGui && !hasBag && guiFile.exists()) {
+        if (!hasGui && guiFile.exists()) {
             return;
         }
 
@@ -238,10 +233,6 @@ public final class ConfigManager {
             migrated.set("gui", legacy.get("gui"));
             guiChanged = true;
         }
-        if (hasBag && !migrated.isConfigurationSection("charm-bag")) {
-            migrated.set("charm-bag", legacy.get("charm-bag"));
-            guiChanged = true;
-        }
 
         try {
             if (guiChanged) {
@@ -252,10 +243,6 @@ public final class ConfigManager {
             boolean configChanged = false;
             if (hasGui && migrated.isConfigurationSection("gui")) {
                 legacy.set("gui", null);
-                configChanged = true;
-            }
-            if (hasBag && migrated.isConfigurationSection("charm-bag")) {
-                legacy.set("charm-bag", null);
                 configChanged = true;
             }
             if (configChanged) {

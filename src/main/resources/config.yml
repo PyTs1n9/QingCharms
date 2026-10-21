@@ -87,10 +87,6 @@ charms:
     type: 项链
     # 需要装备到对应槽位时，物品 Lore 中必须包含该行
     equip-lore: ""
-    rarity: COMMON
-    category: 项链
-    level: 1
-    source-description: "由深渊守卫掉落，或在青玉商店兑换。"
     permission: qingcharms.charm.example
     trigger-message:
       cooldown-ticks: 10
@@ -102,10 +98,6 @@ charms:
   false-oath-tongue:
     enabled: false
     item-file: "qcItems/伪誓之舌.yml"
-    rarity: LEGENDARY
-    category: 项链
-    level: 1
-    source-description: "由深渊守卫掉落，或在青玉商店兑换。"
     permission: qingcharms.charm.false-oath-tongue
     requirements:
       player-level: 0

@@ -26,7 +26,6 @@ public final class CharmDefinition {
     private final Set<String> normalizedLore;
     private final String normalizedEquipLore;
     private final ItemStack itemTemplate;
-    private final CharmRarity rarity;
     private final String permission;
     private final CharmType type;
     private final String equipLore;
@@ -34,53 +33,37 @@ public final class CharmDefinition {
     private final String slotLore;
     private final Set<String> classes;
     private final int requiredLevel;
-    private final String category;
-    private final String sourceDescription;
-    private final int displayLevel;
 
     public CharmDefinition(String id, Material material, String displayName,
-                           List<String> lore, CharmRarity rarity, String permission) {
+                           List<String> lore, String permission) {
         this(id, material, displayName, lore, null, CharmType.NONE, null,
-                null, null, (short) -1, rarity, permission,
-                Collections.<String>emptyList(), 0, null, null, 0);
+                null, null, (short) -1, permission,
+                Collections.<String>emptyList(), 0);
     }
 
     public CharmDefinition(String id, Material material, String displayName,
                            List<String> lore, ItemStack itemTemplate, CharmType type,
                            String equipLore, String slot, String slotLore,
-                           short data, CharmRarity rarity, String permission) {
+                           short data, String permission) {
         this(id, material, displayName, lore, itemTemplate, type, equipLore,
-                slot, slotLore, data, rarity, permission,
-                Collections.<String>emptyList(), 0, null, null, 0);
+                slot, slotLore, data, permission,
+                Collections.<String>emptyList(), 0);
     }
 
     public CharmDefinition(String id, Material material, String displayName,
                            List<String> lore, ItemStack itemTemplate, CharmType type,
                            String equipLore, String slot, String slotLore,
-                           short data, CharmRarity rarity, String permission,
+                           short data, String permission,
                            Collection<String> classes) {
         this(id, material, displayName, lore, itemTemplate, type, equipLore,
-                slot, slotLore, data, rarity, permission, classes,
-                0, null, null, 0);
+                slot, slotLore, data, permission, classes, 0);
     }
 
     public CharmDefinition(String id, Material material, String displayName,
                            List<String> lore, ItemStack itemTemplate, CharmType type,
                            String equipLore, String slot, String slotLore,
-                           short data, CharmRarity rarity, String permission,
+                           short data, String permission,
                            Collection<String> classes, int requiredLevel) {
-        this(id, material, displayName, lore, itemTemplate, type, equipLore,
-                slot, slotLore, data, rarity, permission, classes,
-                requiredLevel, null, null, 0);
-    }
-
-    public CharmDefinition(String id, Material material, String displayName,
-                           List<String> lore, ItemStack itemTemplate, CharmType type,
-                           String equipLore, String slot, String slotLore,
-                           short data, CharmRarity rarity, String permission,
-                           Collection<String> classes,
-                           int requiredLevel, String category,
-                           String sourceDescription, int displayLevel) {
         this.id = id.toLowerCase(Locale.US);
         this.material = material;
         this.data = data;
@@ -90,7 +73,6 @@ public final class CharmDefinition {
         this.normalizedLore = normalizedSet(lore);
         this.normalizedEquipLore = normalize(equipLore);
         this.itemTemplate = itemTemplate == null ? null : itemTemplate.clone();
-        this.rarity = rarity;
         this.permission = permission;
         this.type = type == null ? CharmType.NONE : type;
         this.equipLore = equipLore == null ? null : equipLore.trim();
@@ -99,11 +81,6 @@ public final class CharmDefinition {
                 ? null : slotLore.trim();
         this.classes = immutableValues(classes);
         this.requiredLevel = Math.max(0, requiredLevel);
-        this.category = category == null || category.trim().isEmpty()
-                ? "其他" : category.trim();
-        this.sourceDescription = sourceDescription == null
-                ? "" : sourceDescription.trim();
-        this.displayLevel = Math.max(0, displayLevel);
     }
 
     public String getId() {
@@ -136,10 +113,6 @@ public final class CharmDefinition {
 
     public ItemStack getItemTemplate() {
         return itemTemplate == null ? null : itemTemplate.clone();
-    }
-
-    public CharmRarity getRarity() {
-        return rarity;
     }
 
     public String getPermission() {
@@ -190,23 +163,6 @@ public final class CharmDefinition {
     /** Alias for {@link #getRequiredLevel()}. */
     public int getRequiredPlayerLevel() {
         return requiredLevel;
-    }
-
-
-    public String getCategory() {
-        return category;
-    }
-
-    public String getSourceDescription() {
-        return sourceDescription;
-    }
-
-    /**
-     * Returns charm progression/display level. This is not the Minecraft
-     * player-level requirement returned by {@link #getRequiredPlayerLevel()}.
-     */
-    public int getDisplayLevel() {
-        return displayLevel;
     }
 
     public boolean matches(ItemStack candidate) {

@@ -345,14 +345,3 @@ gui:
       slot: 44
       id: 101
       name: "&7&l&o灵魂饰品"
-
-# 独立护符背包，与装备 GUI 分开。
-charm-bag:
-  enabled: true
-  title: "&8青玉护符背包"
-  rows: 6
-  page-size: 45
-  capacity: 180
-  permission: qingcharms.bag
-  sort:
-    default: rarity

@@ -20,7 +20,7 @@ public final class GuiConfigResourceTest {
         assertFalse(config.isConfigurationSection("gui"));
         assertFalse(config.isConfigurationSection("charm-bag"));
         assertNotNull(gui.getConfigurationSection("gui"));
-        assertNotNull(gui.getConfigurationSection("charm-bag"));
+        assertFalse(gui.isConfigurationSection("charm-bag"));
     }
 
     private YamlConfiguration loadResource(String name) throws Exception {

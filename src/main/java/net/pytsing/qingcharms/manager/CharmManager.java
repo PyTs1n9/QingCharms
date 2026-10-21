@@ -15,7 +15,6 @@ import net.pytsing.qingcharms.gui.GuiSlot;
 import net.pytsing.qingcharms.model.CharmDefinition;
 import net.pytsing.qingcharms.model.ItemIdentity;
 import net.pytsing.qingcharms.model.CharmItemSignature;
-import net.pytsing.qingcharms.model.CharmRarity;
 import net.pytsing.qingcharms.model.CharmType;
 import net.pytsing.qingcharms.model.PlayerData;
 import net.pytsing.qingcharms.util.EventUtils;
@@ -238,6 +237,26 @@ public final class CharmManager implements CharmAPI {
         return resolveDataPath(configured, "qcItems");
     }
 
+    /**
+     * Rarity, display level, category and source-description only ever fed the
+     * removed charm bag. They are ignored now, so a leftover line is reported
+     * once at load time instead of silently doing nothing.
+     */
+    private void warnRemovedDisplayFields(String id, ConfigurationSection section) {
+        List<String> removed = new ArrayList<String>();
+        for (String key : new String[] { "rarity", "level", "category", "source-description" }) {
+            if (section.contains(key)) {
+                removed.add(key);
+            }
+        }
+        if (!removed.isEmpty()) {
+            plugin.getLogger().warning("Charm '" + id + "' sets " + removed
+                    + ", which are no longer used: charm bag display metadata was removed."
+                    + " Delete these keys.");
+        }
+    }
+
+
     private void registerCharm(String id, ItemStack item, ConfigurationSection section, boolean fromQcItems) {
         if (item == null || item.getType() == Material.AIR) {
             return;
@@ -255,7 +274,6 @@ public final class CharmManager implements CharmAPI {
         }
 
 
-        CharmRarity rarity = parseRarity(section.getString("rarity", "COMMON"));
         String typeValue = section.getString("type", "NONE").trim();
         if (typeValue.isEmpty()) {
             typeValue = "NONE";
@@ -317,6 +335,7 @@ public final class CharmManager implements CharmAPI {
             plugin.getLogger().warning("Charm '" + id + "' sets 'tags', which is no longer "
                     + "used: build tags come from classes.<id>.tags only. Remove the line.");
         }
+        warnRemovedDisplayFields(id, section);
         String key = id.toLowerCase(Locale.US);
         if (building.charms.containsKey(key)) {
             plugin.getLogger().warning("Duplicate charm ID '" + id
@@ -328,11 +347,8 @@ public final class CharmManager implements CharmAPI {
         }
         CharmDefinition definition = new CharmDefinition(id, item.getType(), displayName, lore,
                 withEquipLore(item, equipLore), type, equipLore,
-                slot, null, (short) data, rarity, permission,
-                requiredClasses, requiredLevel,
-                section.getString("category", typeValue),
-                section.getString("source-description", ""),
-                section.getInt("level", 0));
+                slot, null, (short) data, permission,
+                requiredClasses, requiredLevel);
         building.charms.put(key, definition);
         if (fromQcItems) {
             if ("NONE".equalsIgnoreCase(typeValue)) {
@@ -638,14 +654,6 @@ public final class CharmManager implements CharmAPI {
             method.invoke(meta, Boolean.TRUE);
         } catch (Exception ignored) {
             // Older Spigot versions do not expose unbreakable metadata.
-        }
-    }
-
-    private CharmRarity parseRarity(String value) {
-        try {
-            return CharmRarity.valueOf(value.toUpperCase(Locale.US));
-        } catch (IllegalArgumentException exception) {
-            return CharmRarity.COMMON;
         }
     }
 

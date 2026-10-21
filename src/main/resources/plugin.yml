@@ -2,13 +2,13 @@ name: QingCharms
 version: ${project.version}
 main: net.pytsing.qingcharms.QingCharmsPlugin
 author: PyTsING
-description: A charm plugin compatible with Minecraft Spigot 1.8 - 1.12.2
+description: QingCharms青玉 - A charm plugin compatible with Minecraft Spigot 1.8 - 1.12.2
 website: https://github.com/PyTsING/QingCharms
 
 commands:
   qingcharms:
     description: Main QingCharms command
-    usage: /qingcharms <help|status|save|backup|build|list|reload|add|set|remove|on|off|give|export|gui|bag|open [player]>
+    usage: /qingcharms <help|status|save|backup|build|list|reload|give|export|check|gui>
     aliases: [qc]
     permission: qingcharms.command
     permission-message: You do not have permission to use this command.
@@ -24,12 +24,6 @@ commands:
     aliases: [qcgrow, qcprogress]
     permission: qingcharms.progression
     permission-message: You do not have permission to use charm progression.
-  qingcharmsbag:
-    description: Open the QingCharms charm bag
-    usage: /qingcharmsbag
-    aliases: [qcb]
-    permission: qingcharms.bag
-    permission-message: You do not have permission to use this command.
 
 permissions:
   qingcharms.command:
@@ -48,7 +42,7 @@ permissions:
     description: Allows reloading the QingCharms configuration
     default: op
   qingcharms.command.admin:
-    description: Allows adding, deleting and modifying charms
+    description: Allows exporting held items as charms
     default: op
   qingcharms.command.give:
     description: Allows giving configured charm items
@@ -58,9 +52,6 @@ permissions:
     default: true
   qingcharms.gui:
     description: Allows opening the QingCharms equipment GUI
-    default: true
-  qingcharms.bag:
-    description: Allows opening and using the QingCharms charm bag
     default: true
   qingcharms.charm.*:
     description: Allows use of all charms

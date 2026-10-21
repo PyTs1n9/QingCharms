@@ -1,9 +1,6 @@
 package net.pytsing.qingcharms;
 
 import net.pytsing.qingcharms.api.CharmAPI;
-import net.pytsing.qingcharms.bag.BagGuiListener;
-import net.pytsing.qingcharms.bag.BagGuiManager;
-import net.pytsing.qingcharms.bag.CharmBagManager;
 import net.pytsing.qingcharms.api.CharmOperationAPI;
 import net.pytsing.qingcharms.api.CharmQueryAPI;
 import net.pytsing.qingcharms.build.BuildResolver;
@@ -43,8 +40,6 @@ public final class QingCharmsPlugin extends JavaPlugin {
     private ProgressionService progressionService;
     private TriggerMessageService triggerMessageService;
     private GuiManager guiManager;
-    private CharmBagManager charmBagManager;
-    private BagGuiManager bagGuiManager;
     private BukkitTask buildRefreshTask;
     private BukkitTask progressionWearTask;
 
@@ -64,8 +59,6 @@ public final class QingCharmsPlugin extends JavaPlugin {
             charmManager.load();
 
             buildResolver = new BuildResolver(this);
-            charmBagManager = new CharmBagManager(this);
-            bagGuiManager = new BagGuiManager(this, charmBagManager);
             progressionService = new ProgressionService(this);
             guiManager = new GuiManager(this);
 
@@ -73,7 +66,6 @@ public final class QingCharmsPlugin extends JavaPlugin {
             getCommand("qingcharms").setExecutor(command);
             getCommand("qingcharms").setTabCompleter(command);
             getCommand("qingcharmsgui").setExecutor(command);
-            getCommand("qingcharmsbag").setExecutor(command);
             ProgressionCommand progressionCommand = new ProgressionCommand(this);
             getCommand("qingcharmsgrowth").setExecutor(progressionCommand);
             getCommand("qingcharmsgrowth").setTabCompleter(progressionCommand);
@@ -81,8 +73,6 @@ public final class QingCharmsPlugin extends JavaPlugin {
             Bukkit.getPluginManager().registerEvents(new CharmListener(this), this);
             Bukkit.getPluginManager().registerEvents(new GuiListener(this), this);
             Bukkit.getPluginManager().registerEvents(new ProgressionListener(this), this);
-            Bukkit.getPluginManager().registerEvents(
-                    new BagGuiListener(bagGuiManager, charmBagManager), this);
 
             Bukkit.getServicesManager().register(CharmQueryAPI.class, getAPI(),
                     this, ServicePriority.Normal);
@@ -124,9 +114,6 @@ public final class QingCharmsPlugin extends JavaPlugin {
         if (triggerMessageService != null) {
             triggerMessageService.shutdown();
         }
-        if (charmBagManager != null) {
-            charmBagManager.saveAll();
-        }
         if (charmManager != null) {
             charmManager.unload();
         }
@@ -152,14 +139,6 @@ public final class QingCharmsPlugin extends JavaPlugin {
 
     public BuildResolver getBuildResolver() {
         return buildResolver;
-    }
-
-    public CharmBagManager getCharmBagManager() {
-        return charmBagManager;
-    }
-
-    public BagGuiManager getBagGuiManager() {
-        return bagGuiManager;
     }
 
     public TriggerMessageService getTriggerMessageService() {
