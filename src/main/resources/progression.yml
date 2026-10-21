@@ -1,0 +1,172 @@
+# QingCharms 成长配置。
+# 仅管理成长状态和 Lore；战斗属性仍由 ItemLoreStats 负责。
+#
+# 资源字段：
+#   wear-seconds  该物品累计装备时间（秒）
+#   kills         装备期间累计击杀的怪物数量
+#   experience    原版玩家经验值
+#   vault         Vault 经济系统货币
+#   playerpoints  PlayerPoints 点数
+#
+# 只有玩家手动执行成长操作后才会消耗资源。
+# 多种资源消耗可以组合；任意资源不足时，操作将被拒绝。
+
+progression:
+  enabled: true
+  # 只有物品 Lore 的任意一行包含以下文字时，才会启用成长系统。
+  # 装备时匹配行会被删除，并在原位置替换为下方 lore 模板生成的成长 Lore。
+  # 可改成其他检测文字，例如 ["可升级", "潜力", "生长型"]。
+  # 留空 [] 时不会启用新的成长物品；已有成长状态不受影响。
+  activation-lore:
+    - "可成长"
+  lore:
+    level: "&7等级: {level}/{max}"
+    enhance: "&7强化: +{enhance}"
+    breakthrough: "&7突破: {stage}阶段"
+    star: "&7星级: {star}"
+    awakened: "&7觉醒: 已觉醒"
+
+level:
+  enabled: true
+  max-level: 10
+  # 除非下方另有覆盖配置，否则所有等级都使用此默认消耗。
+  cost:
+    wear-seconds: 60
+    kills: 10
+    experience: 20
+    vault: 0
+    playerpoints: 0
+  costs:
+    5:
+      wear-seconds: 120
+      kills: 25
+      experience: 50
+  unlock-lore:
+    2:
+      - "&f生命: +1%"
+    5:
+      - "&f攻击力: +1%"
+
+enhance:
+  enabled: true
+  max: 10
+  success-rate: 1.0
+  cost:
+    experience: 30
+    vault: 100
+    playerpoints: 0
+  # 可选的按目标等级覆盖配置：costs.<目标强化等级>
+  costs:
+    5:
+      experience: 80
+      vault: 300
+  unlock-lore:
+    3:
+      - "&f防御: +1%"
+
+breakthrough:
+  enabled: true
+  # 强化必须达到当前上限后，才能进入下一突破阶段。
+  stages:
+    - name: "I"
+      level-cap: 15
+      enhance-cap: 15
+      cost:
+        experience: 100
+        vault: 500
+      unlock-lore:
+        - "&f暴击率: +1%"
+      feedback: breakthrough
+    - name: "II"
+      level-cap: 20
+      enhance-cap: 20
+      cost:
+        experience: 250
+        vault: 1500
+      unlock-lore:
+        - "&f暴击伤害: +2%"
+      feedback: breakthrough
+
+star:
+  enabled: false
+  max: 3
+  formats: ["★", "★★", "★★★"]
+  stages:
+    - format: "★"
+      required-breakthrough: 1
+      level-cap-bonus: 2
+      enhance-cap-bonus: 1
+      cost:
+        playerpoints: 5
+      feedback: star
+    - format: "★★"
+      required-breakthrough: 1
+      level-cap-bonus: 4
+      enhance-cap-bonus: 2
+      cost:
+        playerpoints: 10
+      feedback: star
+    - format: "★★★"
+      required-breakthrough: 2
+      level-cap-bonus: 6
+      enhance-cap-bonus: 3
+      cost:
+        playerpoints: 20
+      feedback: star
+
+awakening:
+  enabled: false
+  one-time: true
+  requirements:
+    level: 10
+    enhance: 10
+    breakthrough: 1
+    star: 0
+  cost:
+    experience: 500
+    vault: 5000
+    playerpoints: 20
+  display-name: "&6觉醒·{name}"
+  unlock-lore:
+    - "&f最终伤害: +3%"
+  feedback: awakening
+
+# 反馈仅用于展示，不会执行技能，也不会改变战斗数值。
+feedback:
+  level:
+    enabled: true
+    sound: LEVEL_UP
+    particles: HAPPY_VILLAGER
+    count: 8
+    radius: 0.5
+    message: "&a护符等级提升：{level}/{max}"
+  enhance:
+    enabled: true
+    sound: ANVIL_LAND
+    particles: CRIT
+    count: 8
+    radius: 0.4
+    message: "&a强化成功：+{enhance}"
+  breakthrough:
+    enabled: true
+    sound: ENDERDRAGON_GROWL
+    particles: FLAME
+    count: 16
+    radius: 0.8
+    message: "&6突破成功：{stage}"
+  star:
+    enabled: true
+    sound: LEVEL_UP
+    particles: FIREWORKS_SPARK
+    count: 12
+    radius: 0.6
+    message: "&6升星成功：{star}"
+  awakening:
+    enabled: true
+    sound: WITHER_SPAWN
+    particles: FLAME
+    count: 24
+    radius: 1.0
+    message: "&6护符觉醒成功"
+
+

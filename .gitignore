@@ -1,0 +1,31 @@
+# ---------- 构建产物 ----------
+target/
+out/
+build/
+*.jar
+
+# ---------- 分发包 ----------
+*.zip
+*.rar
+*.7z
+
+# ---------- IDE ----------
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+bin/
+
+# ---------- 工具 / 本地数据 ----------
+.workbuddy/
+logs/
+*.log
+
+# ---------- 操作系统 ----------
+.DS_Store
+Thumbs.db
+desktop.ini

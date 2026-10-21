@@ -1,0 +1,101 @@
+# QingCharms GUI 配置。
+# 修改本文件后执行 /qc reload 使其生效。
+
+# action 决定点击槽位后的动作：
+#   equip       装备 / 卸下（左键槽位卸下；背包护符右键装备，Shift+右键替换）
+#   unequip     卸下并放回背包
+#   refresh/reopen 刷新 GUI
+#   close       关闭 GUI
+#   none        不执行操作（仅展示图标）
+# 写其他值不会报错，但点击不会有任何反应，启动时会在日志里提示。
+#
+# type / slot-id 是槽位类型，必须与护符配置里的 type 完全一致。
+# action 为 equip 或 unequip 时，type 是必填项：
+# 留空或写成 NONE 的槽位会被直接跳过（不显示、不可点击），
+# 所以"检测不到类型就不允许使用饰品"是加载期就生效的硬规则。
+# 装备饰品 GUI。
+# rows/row: 1-6 行；slot/position 或数字 key 指定 GUI 格子编号（0 开始）。
+# id 是原版物品数字 ID，id_data 是物品 Data/Durability。
+# type 是 GUI 护符槽位类型，可改用 slot-id，例如项链、手饰、腰带。
+# equip 槽位左键卸下；背包护符右键装备到对应槽位，Shift+右键替换当前护符。
+# 护符只在该 GUI 中装备，世界右键不会装备道具或触发主动技能。
+gui:
+  # 行数使用 rows 或 row，均可在 1-6 内修改。
+  row: 3
+  permission: qingcharms.gui
+  title: "&8青玉护符装备"
+  slots:
+    # 槽位名称可自由增删；slot/position 或数字名称决定 GUI 位置。
+    helmet:
+      slot: 0
+      id: 98
+      id_data: 0
+      name: "&a头盔饰品槽"
+      lore:
+        - "&7左键卸下 | 背包右键装备 | Shift+右键替换"
+      type: 头盔
+      action: equip
+    chestplate:
+      slot: 1
+      id: 98
+      id_data: 0
+      name: "&a胸甲饰品槽"
+      lore:
+        - "&7左键卸下 | 背包右键装备 | Shift+右键替换"
+      type: 胸甲
+      action: equip
+    leggings:
+      slot: 2
+      id: 98
+      id_data: 0
+      name: "&a护腿饰品槽"
+      lore:
+        - "&7左键卸下 | 背包右键装备 | Shift+右键替换"
+      type: 护腿
+      action: equip
+    boots:
+      slot: 3
+      id: 98
+      id_data: 0
+      name: "&a靴子饰品槽"
+      lore:
+        - "&7左键卸下 | 背包右键装备 | Shift+右键替换"
+      type: 靴子
+      action: equip
+    necklace:
+      slot: 4
+      id: 98
+      id_data: 0
+      name: "&a项链饰品槽"
+      lore:
+        - "&7左键卸下 | 背包右键装备 | Shift+右键替换"
+      type: 项链
+      action: equip
+    sky:
+      slot: 5
+      id: 98
+      id_data: 0
+      name: "&a天空饰品槽"
+      lore:
+        - "&7左键卸下 | 背包右键装备 | Shift+右键替换"
+      type: 天空
+      action: equip
+    close:
+      slot: 8
+      id: 35
+      id_data: 14
+      name: "&c关闭 GUI"
+      lore:
+        - "&7点击关闭"
+      action: close
+
+# 独立护符背包，与装备 GUI 分开。
+charm-bag:
+  enabled: true
+  title: "&8青玉护符背包"
+  rows: 6
+  page-size: 45
+  capacity: 180
+  permission: qingcharms.bag
+  sort:
+    default: rarity

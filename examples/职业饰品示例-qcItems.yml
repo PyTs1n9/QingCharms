@@ -1,0 +1,43 @@
+# ============================================================
+#  QingCharms 职业饰品示例（qcItems 版本）
+#  目标路径：plugins/QingCharms/qcItems/圣辉誓约.yml
+#  文件名去掉 .yml 就是饰品 ID（这里 ID = 圣辉誓约）
+#
+#  ⚠️ 首饰多、Lore 行多、带附魔时用这种写法更好维护。
+#     最稳的生成方式是：手里拿着做好的物品执行
+#         /qc export paladin-oath-necklace 项链
+#     再把下面 charm: 段的内容补进生成的文件里。
+#  ⚠️ qcItems 文件里的 enabled 默认是 true（和 config.yml 相反），
+#     所以这里不写也会加载。
+# ============================================================
+
+Item:
+  ==: org.bukkit.inventory.ItemStack
+  type: STAINED_GLASS
+  damage: 14
+  amount: 1
+  meta:
+    ==: ItemMeta
+    meta-type: UNSPECIFIC
+    display-name: "§e圣辉誓约"
+    lore:
+      - "§7项链护符"
+      - "§8[护符槽位: 项链]"
+      - "§d职业: 圣骑士"
+      - "§f攻击力: §c+12"
+      - "§f生命值: §c+25"
+
+# ---------- 以下是 QingCharms 自己读的元数据 ----------
+charm:
+  enabled: true
+  type: 项链                    # ★ 必须和 gui.yml 里槽位的 type 完全一致
+  equip-lore: "§8[护符槽位: 项链]"
+  rarity: EPIC
+  category: 项链
+  level: 10
+  source-description: "圣骑士专属，深渊守卫掉落或青玉商店兑换。"
+  permission: qingcharms.charm.paladin-oath-necklace
+  # 注意：饰品不再写 tags，构筑标签全部来自 config.yml 的 classes.<id>.tags
+  requirements:
+    player-level: 10
+    classes: [paladin]

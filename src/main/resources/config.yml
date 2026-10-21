@@ -1,0 +1,128 @@
+# QingCharms 全局配置。
+# 修改本文件后执行 /qc reload 使其生效。
+
+settings:
+  # 只识别带服务端签名的护符，阻止仅复制材质、名字和 Lore 的伪造物品。
+  require-charm-authentication: true
+  # 首次启动时自动生成并保存；请勿复制到其他服务器或公开此密钥。
+  charm-auth-secret: ""
+  # 已变更的玩家数据每 30-60 秒写入一次，磁盘 I/O 在主线程之外执行。
+  player-save-interval-seconds: 30
+  # 定时备份保存在 DataBacked 中，旧备份档案会自动清理。
+  player-backup-interval-minutes: 60
+  player-backup-retention: 7
+  # 即使备份数量未达到上限，超过此时间的备份也会被删除。
+  player-backup-max-age-hours: 168
+  player-backup-folder: DataBacked
+  # 独立护符 YAML 文件所使用的目录。该目录必须位于
+  # 插件数据文件夹内，并支持嵌套子目录。
+  # 文件名去掉扩展名后作为护符 ID，例如
+  # qcItems/胸甲护符/A.yml -> ID "A"。
+  qc-items-folder: qcItems
+
+trigger-message:
+  enabled: true
+  cooldown-ticks: 5
+  format: "&7[青玉] &f{name}已触发"
+
+# 仅提供外观反馈，不会影响装备、持久化、Lore、属性或战斗。
+# feedback.charms.<id> 下的单个护符配置会覆盖这些全局默认值。
+feedback:
+  play-failures: false
+  equip:
+    sound: LEVEL_UP
+    volume: 1.0
+    pitch: 1.0
+    particles: FLAME
+    count: 12
+    radius: 0.4
+    message: "&a已装备 {charm}"
+  replace:
+    sound: LEVEL_UP
+    volume: 1.0
+    pitch: 1.0
+    particles: FLAME
+    count: 12
+    radius: 0.4
+    message: "&a已替换为 {charm}"
+  unequip:
+    sound: CLICK
+    volume: 1.0
+    pitch: 1.0
+    particles: SMOKE
+    count: 8
+    radius: 0.4
+    message: "&7已卸下 {charm}"
+  failure:
+    enabled: false
+    sound: VILLAGER_NO
+    particles: SMOKE
+    count: 4
+    radius: 0.2
+    message: ""
+  charms:
+    example:
+      equip:
+        particles: LAVA_POP
+        count: 16
+# 已定义的护符物品。
+# material 可以使用 Bukkit 材质名称或数字物品 ID。
+# data 是物品的 Data/Durability 变体值，例如 95:14 表示
+# material: 95，data: 14。
+# item-file 必须位于本插件的数据文件夹内，例如
+# qcItems/伪誓之舌.yml。YAML 根键必须是 Item 或 item。
+
+# 职业（classes）与构筑规则（rules）已迁移到独立文件 classes.yml，
+# 本文件不再管理它们。请编辑插件数据文件夹下的 classes.yml。
+charms:
+  example:
+    enabled: false
+    material: 95
+    data: 14
+    display-name: "&a红色玻璃护符"
+    lore:
+      - "&7项链护符"
+      - "&c攻击: &r+1000000"
+    # type 必须与 GUI 槽位 type 一致，物品 Lore 必须包含该 type
+    type: 项链
+    # 需要装备到对应槽位时，物品 Lore 中必须包含该行
+    equip-lore: ""
+    rarity: COMMON
+    category: 项链
+    level: 1
+    source-description: "由深渊守卫掉落，或在青玉商店兑换。"
+    permission: qingcharms.charm.example
+    trigger-message:
+      cooldown-ticks: 10
+      format: "&7[青玉护符] &f效果已触发"
+    requirements:
+      player-level: 30
+      classes: [paladin]
+
+  false-oath-tongue:
+    enabled: false
+    item-file: "qcItems/伪誓之舌.yml"
+    rarity: LEGENDARY
+    category: 项链
+    level: 1
+    source-description: "由深渊守卫掉落，或在青玉商店兑换。"
+    permission: qingcharms.charm.false-oath-tongue
+    requirements:
+      player-level: 0
+      classes: []
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

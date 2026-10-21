@@ -1,0 +1,66 @@
+# QingCharms 职业与构筑规则配置。
+# 本文件由插件启动时自动生成；config.yml 不再管理职业（classes）与构筑（rules）。
+# 修改本文件后执行 /qc reload 使其生效。
+
+# 职业只通过权限节点判断。GroupManager 负责分配权限；QingCharms 只调用 hasPermission()。
+# ★ tags 是构筑计数的唯一来源，饰品（charms / qcItems）不再写 tags。
+#   计数规则：GUI 内每件已装备饰品，都会把当前职业的每个 tags 各计 1 次。
+#   例：圣骑士 tags: [圣光] 装了 3 件饰品 → 圣光 = 3。
+# recommended-tags 只用于 /qc build 的推荐提示，不参与任何判定。
+classes:
+  paladin:
+    name: "圣骑士"
+    permission: "deluxetags.tag.sqs"
+    tags: [圣光, 守护]
+    recommended-tags: [圣光, 守护, 治疗]
+  warrior:
+    name: "战士"
+    permission: "deluxetags.tag.warrior"
+    tags: [力量, 壁垒]
+    recommended-tags: [力量, 壁垒, 物理]
+
+# 构筑规则：只有 bond（羁绊）一种算法，不再写 type。
+# name 是 /qc build 里「已激活羁绊」显示的名字，不写则回退成规则 ID。
+# tags 中所有标签的构筑计数相加，达到 count 即激活。
+# 因为每件饰品都会给每个职业标签 +1，所以单标签时 count 就等于「需要装备几件」。
+#   tags: [圣光]      count: 2  → 装备 2 件
+#   tags: [圣光, 守护] count: 4  → 每件贡献 2 点，等于装备 2 件
+# ★ 档位：tags 组合相同的规则互相竞争，只有「count 最高的那条」生效。
+#   下面 holy-bond(2) 和 holy-bond-pro(5) 都是 tags: [圣光]：
+#     装 2~4 件 → 只亮「圣光祝福」
+#     装 5 件以上 → 只亮「超级圣光祝福」，低档不会一起叠
+#   count 相同的规则视为同档并列，会一起生效（例：同为 2 件的「防御」和「攻击」）。
+#   想手动分档（比如 tags 写法不同也算一档）就给它们写同一个 group 名。
+# 可选条件：classes（职业门槛，不写则不限职业）、requirements（单个标签的最低数量）。
+# add-lore 必须写成 ItemLoreStats 可识别的最终 Lore，例如 "&f攻击力: +10%"。
+# QingCharms 只编译这些文本，不计算任何属性。
+rules:
+  holy-bond:
+    enabled: false
+    name: "圣光祝福"
+    tags: [圣光]
+    count: 2
+    add-lore:
+      - "&f防御: +5%"
+  holy-bond-pro:
+    enabled: false
+    name: "超级圣光祝福"
+    tags: [圣光]
+    count: 5
+    add-lore:
+      - "&f防御: +15%"
+  holy-guard-bond:
+    enabled: false
+    name: "圣光守护"
+    tags: [圣光, 守护]
+    count: 4
+    add-lore:
+      - "&f伤害减免: +5%"
+  paladin-build:
+    enabled: false
+    name: "黎明守卫"
+    classes: [paladin]
+    tags: [守护]
+    count: 2
+    add-lore:
+      - "&f生命: +5%"

@@ -1,0 +1,75 @@
+name: QingCharms
+version: ${project.version}
+main: net.pytsing.qingcharms.QingCharmsPlugin
+author: PyTsING
+description: A charm plugin compatible with Minecraft Spigot 1.8 - 1.12.2
+website: https://github.com/PyTsING/QingCharms
+
+commands:
+  qingcharms:
+    description: Main QingCharms command
+    usage: /qingcharms <help|status|save|backup|build|list|reload|add|set|remove|on|off|give|export|gui|bag|open [player]>
+    aliases: [qc]
+    permission: qingcharms.command
+    permission-message: You do not have permission to use this command.
+  qingcharmsgui:
+    description: Open the QingCharms equipment GUI
+    usage: /qingcharmsgui
+    aliases: [qcg]
+    permission: qingcharms.gui
+    permission-message: You do not have permission to use this command.
+  qingcharmsgrowth:
+    description: Manually grow equipped or held charms
+    usage: /qingcharmsgrowth <status|level|enhance|breakthrough|star|awaken> [slot]
+    aliases: [qcgrow, qcprogress]
+    permission: qingcharms.progression
+    permission-message: You do not have permission to use charm progression.
+  qingcharmsbag:
+    description: Open the QingCharms charm bag
+    usage: /qingcharmsbag
+    aliases: [qcb]
+    permission: qingcharms.bag
+    permission-message: You do not have permission to use this command.
+
+permissions:
+  qingcharms.command:
+    description: Allows access to the QingCharms command
+    default: true
+  qingcharms.command.status:
+    description: Allows viewing QingCharms storage status.
+    default: true
+  qingcharms.command.save:
+    description: Allows forcing a QingCharms player data save.
+    default: op
+  qingcharms.command.backup:
+    description: Allows forcing a QingCharms player data backup.
+    default: op
+  qingcharms.command.reload:
+    description: Allows reloading the QingCharms configuration
+    default: op
+  qingcharms.command.admin:
+    description: Allows adding, deleting and modifying charms
+    default: op
+  qingcharms.command.give:
+    description: Allows giving configured charm items
+    default: op
+  qingcharms.progression:
+    description: Allows manual charm progression actions
+    default: true
+  qingcharms.gui:
+    description: Allows opening the QingCharms equipment GUI
+    default: true
+  qingcharms.bag:
+    description: Allows opening and using the QingCharms charm bag
+    default: true
+  qingcharms.charm.*:
+    description: Allows use of all charms
+    default: op
+  qingcharms.charm.example:
+    description: Allows use of the example charm
+    default: true
+
+
+
+
+
