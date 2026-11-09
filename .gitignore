@@ -27,8 +27,8 @@ bin/
 logs/
 *.log
 
-# ---------- 本地决策记录 ----------
-/docs/decisions-plugin-boundaries.md
+# ---------- 本地文档 ----------
+/docs/
 
 # ---------- 操作系统 ----------
 .DS_Store
