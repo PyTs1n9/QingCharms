@@ -6,6 +6,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 /**
@@ -67,6 +69,60 @@ public final class CharmTypeInference {
             }
         }
         return "";
+    }
+
+    /** Returns the only GUI slot type named in Lore, or empty when ambiguous. */
+    public static String inferUniqueLoreType(Collection<String> lore,
+                                             Collection<String> slotTypes) {
+        if (lore == null || slotTypes == null || slotTypes.isEmpty()) {
+            return "";
+        }
+        LinkedHashSet<String> matches = new LinkedHashSet<String>();
+        for (String line : lore) {
+            String normalizedLine = CharmItemSignature.normalizeSearch(line);
+            if (normalizedLine.isEmpty()) {
+                continue;
+            }
+            for (String type : slotTypes) {
+                if (type != null && !type.trim().isEmpty()
+                        && normalizedLine.contains(
+                                CharmItemSignature.normalizeSearch(type))) {
+                    addIgnoreCase(matches, type.trim());
+                }
+            }
+        }
+        return matches.size() == 1 ? matches.iterator().next() : "";
+    }
+
+    private static void addIgnoreCase(Collection<String> values, String value) {
+        for (String existing : values) {
+            if (existing.equalsIgnoreCase(value)) {
+                return;
+            }
+        }
+        values.add(value);
+    }
+
+    public static List<String> findLoreTypeMatches(Collection<String> lore,
+                                                    Collection<String> slotTypes) {
+        if (lore == null || slotTypes == null) {
+            return Collections.emptyList();
+        }
+        LinkedHashSet<String> matches = new LinkedHashSet<String>();
+        for (String line : lore) {
+            String normalizedLine = CharmItemSignature.normalizeSearch(line);
+            if (normalizedLine.isEmpty()) {
+                continue;
+            }
+            for (String type : slotTypes) {
+                if (type != null && !type.trim().isEmpty()
+                        && normalizedLine.contains(
+                                CharmItemSignature.normalizeSearch(type))) {
+                    addIgnoreCase(matches, type.trim());
+                }
+            }
+        }
+        return Collections.unmodifiableList(new ArrayList<String>(matches));
     }
 
     /** True when the equipment Lore gate would accept this type for the item. */

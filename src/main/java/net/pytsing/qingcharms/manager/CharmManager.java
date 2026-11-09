@@ -279,7 +279,10 @@ public final class CharmManager implements CharmAPI {
             typeValue = "NONE";
         }
         if ("NONE".equalsIgnoreCase(typeValue)) {
-            String inferred = CharmTypeInference.infer(item, building.typeSlots);
+            List<String> itemLore = item.hasItemMeta() && item.getItemMeta().hasLore()
+                    ? item.getItemMeta().getLore() : Collections.<String>emptyList();
+            String inferred = CharmTypeInference.inferUniqueLoreType(
+                    itemLore, building.typeSlots);
             if (!inferred.isEmpty()) {
                 plugin.getLogger().info("Charm '" + id + "' has no type; inferred '"
                         + inferred + "' from its Lore.");
@@ -352,8 +355,8 @@ public final class CharmManager implements CharmAPI {
         building.charms.put(key, definition);
         if (fromQcItems) {
             if ("NONE".equalsIgnoreCase(typeValue)) {
-                plugin.getLogger().warning("Charm '" + id + "' has no equip type and cannot be equipped. "
-                        + "Set 'charm.type' in its qcItems file.");
+                plugin.getLogger().warning("Charm '" + id + "' has no unique equip type in its Lore. "
+                        + "Add exactly one GUI slot type to its Lore.");
             } else if (!building.typeSlots.isEmpty()
                     && !CharmTypeInference.containsType(building.typeSlots, typeValue)) {
                 plugin.getLogger().warning("Charm '" + id + "' uses type '" + typeValue

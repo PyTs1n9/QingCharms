@@ -4,6 +4,8 @@ Minecraft 饰品护符插件，兼容 Spigot/Bukkit `1.8 - 1.12.2`，当前版�
 
 > 插件显示名 **QingCharms青玉**；`plugin.yml` 内部的 `name` 保持 `QingCharms`（Bukkit 只接受字母数字和 `-`/`_`，且该值决定数据目录 `plugins/QingCharms/`）。
 
+> 本 README 的命令、配置和行为说明对应当前 `0.2.0` 实现。重新定义后的职责边界与构筑目标见 [`docs/plugin-boundaries.md`](docs/plugin-boundaries.md)，该目标边界尚未整体落地；后续开发以该边界文档和根目录 `AGENTS.md` 为准。
+
 QingCharms 只负责**护符识别、装备 GUI、槽位限制、玩家数据持久化**，以及把已装备的完整 `ItemStack` 交给 ItemLoreStats（ILS）。它不计算属性、不结算战斗、不实现主动技能。
 
 ---
@@ -69,40 +71,49 @@ mvn clean package
 
 ## 护符制作流程
 
-推荐工作流只有四步，不提供在游戏内增删改护符的命令：
+饰品制作沿用 ILS 的“游戏内制作、导出模板、按 ID 发放”方式：
 
 ```text
 游戏里用 /lore 等方式做好物品
         ↓
    /qc export <id>       把手中物品写成 qcItems/<id>.yml 并签名
         ↓
-手工微调 qcItems/<id>.yml（type / permission / equip-lore / requirements）
-        ↓
-   /qc reload  →  /qc give <id>
+   /qc give <id>         立即从模板发放副本，无需重载
 ```
 
 ### 1. 导出手持物品
 
 ```text
-/qc export <id> [类型] [-f]
+/qc export <id> [-f]
 ```
 
 | 参数 | 说明 |
 | --- | --- |
 | `<id>` | 护符 ID，小写字母/数字/下划线/连字符，1-32 位；同时是文件名 |
-| `[类型]` | 槽位类型。省略时按 `gui.yml` 的槽位 `type` 列表在显示名与 Lore 中逐行匹配，命中即写入 |
-| `-f` / `force` | 覆盖已存在的同名文件 |
+| `-f` | 覆盖已存在的同名文件 |
 
 执行后插件会：
 
-1. 剥离物品上旧的实例签名，把干净的 `Item` 写入 `qcItems/<id>.yml`，同时写好 `charm.enabled: true` 与 `charm.permission: qingcharms.charm.<id>`。
-2. 重新加载护符表。
-3. 把手中物品替换为带服务端签名的实例，可以直接右键装备。
+1. 剥离物品上旧的实例签名，把干净的 `Item` 写入 `qcItems/<id>.yml`，同时写好启用状态和默认权限。
+2. 从物品 Lore 匹配 `gui.yml` 中的槽位 `type`。必须且只能命中一种；未命中或命中多种都会拒绝导出。显示名不参与类型识别。
+3. 立即加载模板，并把手中物品替换为带服务端签名的实例；随后可用 `/qc give <id> [player]` 发放副本。
 
-导出时的两种警告：
+默认拒绝覆盖已有 ID；加 `-f` 才覆盖。启用中的 `config.yml` 同 ID 定义优先级更高，因此导出会拒绝冲突 ID。旧 `qcItems` 文件仍可读取，显式配置的 `charm.type` 也继续兼容。
 
-- `type-not-in-lore`：识别到类型，但 Lore 里没有该文字。装备时仍会被 Lore 校验拦下，需要补一行包含该类型文字的 Lore，或配置 `equip-lore`。
-- `no-type`：完全没识别到类型。护符会正常加载，但**只能存储、无法装备**，需要在文件里手写 `charm.type`。
+### 可选限制
+
+导出文件默认只包含物品本体、启用状态和使用权限。需要限制玩家时，可在 `charm` 下手动添加等级与职业要求：
+
+```yaml
+charm:
+  enabled: true
+  permission: qingcharms.charm.jade
+  requirements:
+    player-level: 30
+    classes: [paladin]
+```
+
+手动调整这些限制后执行一次 `/qc reload`；仅使用导出生成的默认模板无需重载。
 
 ### 2. `qcItems` 文件格式
 
@@ -122,12 +133,7 @@ Item:
 
 charm:
   enabled: true
-  type: 项链
   permission: qingcharms.charm.jade
-  equip-lore: ""
-  requirements:
-    player-level: 0
-    classes: []
 ```
 
 规则：
@@ -137,7 +143,7 @@ charm:
 - **`data` 以 `Item` 内的 durability 为准**。`charm.data` 不覆盖它，两者不一致时只打一条 warning；要区分玻璃/羊毛颜色等变体就写在 `Item` 里。
 - 物品没有 `display-name` 时不校验名字，只按材质、`data`（若配置）和 Lore 识别。
 - 同 ID 时 `config.yml` 中的定义优先。
-- 文件缺 `type` 时，加载期会尝试从 Lore 推断；推断不到则保持空类型并给出 warning。
+- 新模板不写 `type`：加载期只从 Lore 匹配 `gui.yml` 的槽位类型，且必须唯一。旧文件显式写入的 `type` 仍兼容。
 
 ### 3. 排错：`/qc check`
 
@@ -191,7 +197,7 @@ charm:
 | `/qc build` | `qingcharms.command` | 显示当前职业、契合特质、已激活羁绊 |
 | `/qc check` | `qingcharms.command` | 诊断手持物品为什么装不上 |
 | `/qc give <id> [player]` | `qingcharms.command.give` | 发放带签名的护符副本 |
-| `/qc export <id> [类型] [-f]` | `qingcharms.command.admin` | 把手中物品导出为 `qcItems` 文件并签名 |
+| `/qc export <id> [-f]` | `qingcharms.command.admin` | 把手中物品导出为 `qcItems` 文件并立即加载签名 |
 | `/qc reload` | `qingcharms.command.reload` | 重载全部配置并重新校验已装备道具 |
 | `/qc save` | `qingcharms.command.save` | 强制保存在线玩家数据 |
 | `/qc backup` | `qingcharms.command.backup` | 强制备份玩家数据 |

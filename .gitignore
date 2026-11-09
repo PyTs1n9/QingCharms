@@ -25,6 +25,9 @@ bin/
 logs/
 *.log
 
+# ---------- 本地决策记录 ----------
+/docs/decisions-plugin-boundaries.md
+
 # ---------- 操作系统 ----------
 .DS_Store
 Thumbs.db

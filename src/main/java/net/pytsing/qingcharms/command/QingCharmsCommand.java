@@ -237,8 +237,8 @@ public final class QingCharmsCommand implements CommandExecutor, TabCompleter {
             MessageUtils.send(sender, "command.export.player-only");
             return true;
         }
-        if (args.length < 2 || args.length > 4) {
-            MessageUtils.send(sender, "command.export.usage");
+        if (args.length < 2 || args.length > 3) {
+            MessageUtils.send(sender, "command.export.usage-v2");
             return true;
         }
 
@@ -248,18 +248,10 @@ public final class QingCharmsCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        boolean overwrite = false;
-        String requestedType = null;
-        for (int index = 2; index < args.length; index++) {
-            String token = args[index] == null ? "" : args[index].trim();
-            if ("-f".equalsIgnoreCase(token) || "force".equalsIgnoreCase(token)) {
-                overwrite = true;
-            } else if (requestedType == null && !token.isEmpty()) {
-                requestedType = token;
-            } else {
-                MessageUtils.send(sender, "command.export.usage");
-                return true;
-            }
+        boolean overwrite = args.length == 3 && "-f".equalsIgnoreCase(args[2]);
+        if (args.length == 3 && !overwrite) {
+            MessageUtils.send(sender, "command.export.usage-v2");
+            return true;
         }
 
         org.bukkit.entity.Player player = (org.bukkit.entity.Player) sender;
@@ -274,7 +266,22 @@ public final class QingCharmsCommand implements CommandExecutor, TabCompleter {
             MessageUtils.send(sender, "command.export.failed");
             return true;
         }
-        File file = new File(folder, id + ".yml");
+        ConfigurationSection configuredCharms = plugin.getConfig()
+                .getConfigurationSection("charms");
+        if (configuredCharms != null) {
+            for (String configuredId : configuredCharms.getKeys(false)) {
+                ConfigurationSection configuredCharm =
+                        configuredCharms.getConfigurationSection(configuredId);
+                if (id.equalsIgnoreCase(configuredId) && configuredCharm != null
+                        && configuredCharm.getBoolean("enabled", false)) {
+                    MessageUtils.send(sender, "command.export.config-conflict", id);
+                    return true;
+                }
+            }
+        }
+
+        File existingFile = plugin.getCharmManager().findQcItemFile(id);
+        File file = existingFile == null ? new File(folder, id + ".yml") : existingFile;
         boolean existed = file.exists();
         if (existed && !overwrite) {
             MessageUtils.send(sender, "command.export.already-exists", id);
@@ -285,17 +292,21 @@ public final class QingCharmsCommand implements CommandExecutor, TabCompleter {
         // hidden ID/token would be baked into every /qc give copy.
         org.bukkit.inventory.ItemStack template =
                 net.pytsing.qingcharms.api.ItemUniqueId.withoutIdentityLore(item.clone());
-        String type = requestedType == null
-                ? net.pytsing.qingcharms.manager.CharmTypeInference.infer(
-                        template, plugin.getCharmManager().getEquipSlotTypes())
-                : requestedType;
+        List<String> lore = template.hasItemMeta() && template.getItemMeta().hasLore()
+                ? template.getItemMeta().getLore() : Collections.<String>emptyList();
+        List<String> types = net.pytsing.qingcharms.manager.CharmTypeInference
+                .findLoreTypeMatches(lore, plugin.getCharmManager().getEquipSlotTypes());
+        if (types.size() != 1) {
+            MessageUtils.send(sender, types.isEmpty()
+                    ? "command.export.missing-lore-type"
+                    : "command.export.multiple-types-v2",
+                    types.isEmpty() ? id : String.join(", ", types));
+            return true;
+        }
 
         YamlConfiguration yaml = new YamlConfiguration();
         yaml.set("Item", ItemStackYaml.serializeForExport(template));
         yaml.set("charm.enabled", true);
-        if (type != null && !type.trim().isEmpty() && !"NONE".equalsIgnoreCase(type.trim())) {
-            yaml.set("charm.type", type.trim());
-        }
         yaml.set("charm.permission", "qingcharms.charm." + id);
         try {
             YamlUtils.save(file, yaml);
@@ -307,21 +318,16 @@ public final class QingCharmsCommand implements CommandExecutor, TabCompleter {
         }
 
         plugin.getCharmManager().load();
+        net.pytsing.qingcharms.model.CharmDefinition loaded = plugin.getCharmManager()
+                .getCharm(id).orElse(null);
+        if (loaded == null || !plugin.getCharmManager().isQcItemCharm(id)
+                || !loaded.matches(template)) {
+            MessageUtils.send(sender, "command.export.load-failed", id);
+            return true;
+        }
         MessageUtils.send(sender, existed
                 ? "command.export.overwritten" : "command.export.success", id,
                 file.getAbsolutePath());
-
-        boolean usableType = type != null && !type.trim().isEmpty()
-                && !"NONE".equalsIgnoreCase(type.trim());
-        if (!usableType) {
-            MessageUtils.send(sender, "command.export.no-type", id);
-        } else {
-            MessageUtils.send(sender, "command.export.type", type.trim());
-            if (!net.pytsing.qingcharms.manager.CharmTypeInference
-                    .loreContainsType(template, type.trim())) {
-                MessageUtils.send(sender, "command.export.type-not-in-lore", type.trim());
-            }
-        }
 
         signHeldItem(player, id, template);
         return true;
@@ -708,10 +714,10 @@ public final class QingCharmsCommand implements CommandExecutor, TabCompleter {
 
         if (sender.hasPermission("qingcharms.command.admin")) {
             MessageUtils.sendHelp(sender, "command.help.give");
-            MessageUtils.sendHelp(sender, "command.help.export");
+            MessageUtils.sendHelp(sender, "command.help.export-v2");
             MessageUtils.sendHelp(sender, "command.help.save");
             MessageUtils.sendHelp(sender, "command.help.backup");
-            MessageUtils.sendHelp(sender, "command.help.types");
+            MessageUtils.sendHelp(sender, "command.help.types-v2");
         }
     }
 
@@ -736,13 +742,7 @@ public final class QingCharmsCommand implements CommandExecutor, TabCompleter {
             return Collections.emptyList();
         }
         if ("export".equals(subCommand) && args.length == 3) {
-            List<String> suggestions = new ArrayList<String>(
-                    plugin.getCharmManager().getEquipSlotTypes());
-            suggestions.add("-f");
-            return filterStartsWith(suggestions, args[2]);
-        }
-        if ("export".equals(subCommand) && args.length == 4) {
-            return filterStartsWith(Arrays.asList("-f"), args[3]);
+            return filterStartsWith(Arrays.asList("-f"), args[2]);
         }
         return Collections.emptyList();
     }
