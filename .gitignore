@@ -21,6 +21,8 @@ out/
 bin/
 
 # ---------- 工具 / 本地数据 ----------
+/.codex/
+/AGENTS.md
 .workbuddy/
 logs/
 *.log
