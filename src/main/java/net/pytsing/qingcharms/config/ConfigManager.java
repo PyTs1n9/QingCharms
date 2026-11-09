@@ -1,6 +1,7 @@
 package net.pytsing.qingcharms.config;
 
 import net.pytsing.qingcharms.util.YamlUtils;
+import net.pytsing.qingcharms.build.BuildConfigValidator;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -18,8 +19,10 @@ public final class ConfigManager {
     private final File configFile;
     private final File guiFile;
     private final File classesFile;
+    private final File buildsFile;
     private YamlConfiguration guiConfiguration = new YamlConfiguration();
     private YamlConfiguration classesConfiguration = new YamlConfiguration();
+    private YamlConfiguration buildsConfiguration = new YamlConfiguration();
     private boolean saveBlocked = true;
 
     public ConfigManager(JavaPlugin plugin) {
@@ -27,6 +30,7 @@ public final class ConfigManager {
         this.configFile = new File(plugin.getDataFolder(), "config.yml");
         this.guiFile = new File(plugin.getDataFolder(), "gui.yml");
         this.classesFile = new File(plugin.getDataFolder(), "classes.yml");
+        this.buildsFile = new File(plugin.getDataFolder(), "builds.yml");
     }
 
     public void load() {
@@ -77,7 +81,24 @@ public final class ConfigManager {
             return PreparedReload.failed("invalid rules section in classes.yml");
         }
 
-        return PreparedReload.ready(configCandidate, guiCandidate, classesCandidate);
+        YamlUtils.LoadResult buildsResult =
+                YamlUtils.loadChecked(buildsFile, plugin.getLogger());
+        if (buildsResult.isFailed()) {
+            return PreparedReload.failed("builds.yml could not be parsed");
+        }
+        YamlConfiguration buildsCandidate = buildsResult.getConfiguration();
+        if (buildsCandidate.contains("builds")
+                && buildsCandidate.getConfigurationSection("builds") == null) {
+            return PreparedReload.failed("invalid builds section in builds.yml");
+        }
+        String buildError = BuildConfigValidator.validate(
+                buildsCandidate.getConfigurationSection("builds"));
+        if (buildError != null) {
+            return PreparedReload.failed(buildError);
+        }
+
+        return PreparedReload.ready(configCandidate, guiCandidate, classesCandidate,
+                buildsCandidate);
     }
 
     public boolean commitReload(PreparedReload prepared) {
@@ -85,20 +106,26 @@ public final class ConfigManager {
             return false;
         }
         try {
-            plugin.getConfig().loadFromString(prepared.getConfiguration().saveToString());
-            if (plugin.getConfig().contains("charms")
-                    && plugin.getConfig().getConfigurationSection("charms") == null) {
-                saveBlocked = true;
-                return false;
-            }
-
             YamlConfiguration nextGui = new YamlConfiguration();
             nextGui.loadFromString(prepared.getGuiConfiguration().saveToString());
-            guiConfiguration = nextGui;
 
             YamlConfiguration nextClasses = new YamlConfiguration();
             nextClasses.loadFromString(prepared.getClassesConfiguration().saveToString());
+
+            YamlConfiguration nextBuilds = new YamlConfiguration();
+            nextBuilds.loadFromString(prepared.getBuildsConfiguration().saveToString());
+
+            YamlConfiguration nextConfig = new YamlConfiguration();
+            nextConfig.loadFromString(prepared.getConfiguration().saveToString());
+            if (nextConfig.contains("charms")
+                    && nextConfig.getConfigurationSection("charms") == null) {
+                saveBlocked = true;
+                return false;
+            }
+            plugin.getConfig().loadFromString(nextConfig.saveToString());
+            guiConfiguration = nextGui;
             classesConfiguration = nextClasses;
+            buildsConfiguration = nextBuilds;
             saveBlocked = false;
             return true;
         } catch (Exception exception) {
@@ -164,9 +191,13 @@ public final class ConfigManager {
         return classesFile;
     }
 
+    public YamlConfiguration getBuildsConfiguration() {
+        return buildsConfiguration;
+    }
+
     /** Section inside classes.yml, e.g. {@code classes} or {@code rules}. */
     public ConfigurationSection getBuildSection(String path) {
-        return classesConfiguration.getConfigurationSection(path);
+        return buildsConfiguration.getConfigurationSection(path);
     }
 
     public String getString(String path, String fallback) {
@@ -188,6 +219,7 @@ public final class ConfigManager {
         ensureDefaultFile(guiFile, "gui.yml");
         migrateLegacyBuildSections();
         ensureDefaultFile(classesFile, "classes.yml");
+        ensureDefaultFile(buildsFile, "builds.yml");
     }
 
     private void ensureDefaultFile(File file, String resource) {
@@ -337,26 +369,31 @@ public final class ConfigManager {
         private final YamlConfiguration configuration;
         private final YamlConfiguration guiConfiguration;
         private final YamlConfiguration classesConfiguration;
+        private final YamlConfiguration buildsConfiguration;
         private final String error;
 
         private PreparedReload(YamlConfiguration configuration,
                                YamlConfiguration guiConfiguration,
                                YamlConfiguration classesConfiguration,
+                               YamlConfiguration buildsConfiguration,
                                String error) {
             this.configuration = configuration;
             this.guiConfiguration = guiConfiguration;
             this.classesConfiguration = classesConfiguration;
+            this.buildsConfiguration = buildsConfiguration;
             this.error = error;
         }
 
         private static PreparedReload ready(YamlConfiguration configuration,
                                             YamlConfiguration guiConfiguration,
-                                            YamlConfiguration classesConfiguration) {
-            return new PreparedReload(configuration, guiConfiguration, classesConfiguration, null);
+                                            YamlConfiguration classesConfiguration,
+                                            YamlConfiguration buildsConfiguration) {
+            return new PreparedReload(configuration, guiConfiguration, classesConfiguration,
+                    buildsConfiguration, null);
         }
 
         private static PreparedReload failed(String error) {
-            return new PreparedReload(null, null, null, error);
+            return new PreparedReload(null, null, null, null, error);
         }
 
         public boolean isFailed() {
@@ -377,6 +414,10 @@ public final class ConfigManager {
 
         public YamlConfiguration getClassesConfiguration() {
             return classesConfiguration;
+        }
+
+        public YamlConfiguration getBuildsConfiguration() {
+            return buildsConfiguration;
         }
     }
 }

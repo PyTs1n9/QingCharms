@@ -33,6 +33,7 @@ public final class CharmDefinition {
     private final String slotLore;
     private final Set<String> classes;
     private final int requiredLevel;
+    private final Set<String> tags;
 
     public CharmDefinition(String id, Material material, String displayName,
                            List<String> lore, String permission) {
@@ -64,6 +65,17 @@ public final class CharmDefinition {
                            String equipLore, String slot, String slotLore,
                            short data, String permission,
                            Collection<String> classes, int requiredLevel) {
+        this(id, material, displayName, lore, itemTemplate, type, equipLore,
+                slot, slotLore, data, permission, classes, requiredLevel,
+                Collections.<String>emptyList());
+    }
+
+    public CharmDefinition(String id, Material material, String displayName,
+                           List<String> lore, ItemStack itemTemplate, CharmType type,
+                           String equipLore, String slot, String slotLore,
+                           short data, String permission,
+                           Collection<String> classes, int requiredLevel,
+                           Collection<String> tags) {
         this.id = id.toLowerCase(Locale.US);
         this.material = material;
         this.data = data;
@@ -81,6 +93,7 @@ public final class CharmDefinition {
                 ? null : slotLore.trim();
         this.classes = immutableValues(classes);
         this.requiredLevel = Math.max(0, requiredLevel);
+        this.tags = immutableValues(tags);
     }
 
     public String getId() {
@@ -163,6 +176,11 @@ public final class CharmDefinition {
     /** Alias for {@link #getRequiredLevel()}. */
     public int getRequiredPlayerLevel() {
         return requiredLevel;
+    }
+
+    /** Returns this charm's normalized, deduplicated build tags. */
+    public Set<String> getTags() {
+        return tags;
     }
 
     public boolean matches(ItemStack candidate) {

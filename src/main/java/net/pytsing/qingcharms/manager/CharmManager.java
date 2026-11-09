@@ -47,6 +47,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 public final class CharmManager implements CharmAPI {
 
@@ -57,6 +58,7 @@ public final class CharmManager implements CharmAPI {
     private final ConfigManager configManager;
     private final CharmItemAuth itemAuth;
     private volatile CharmRuntime runtime = CharmRuntime.empty();
+    private final AtomicLong templateDiskRevision = new AtomicLong();
     private CharmRuntimeBuilder building;
     private Map<File, YamlConfiguration> preparedDocuments =
             Collections.<File, YamlConfiguration>emptyMap();
@@ -209,26 +211,33 @@ public final class CharmManager implements CharmAPI {
     }
 
     public File findQcItemFile(String charmId) {
+        List<File> files = findQcItemFiles(charmId);
+        return files.isEmpty() ? null : files.get(0);
+    }
+
+    /** Returns every file using the ID, including case and nested-directory duplicates. */
+    public List<File> findQcItemFiles(String charmId) {
         if (charmId == null || charmId.trim().isEmpty()) {
-            return null;
+            return Collections.emptyList();
         }
         File folder = getQcItemsFolder();
         if (folder == null) {
-            return null;
+            return Collections.emptyList();
         }
         List<File> files = new ArrayList<File>();
         collectYamlFiles(folder, files, 0, new HashSet<String>());
         Collections.sort(files);
         String expected = charmId.trim().toLowerCase(Locale.US);
+        List<File> matches = new ArrayList<File>();
         for (File file : files) {
             String name = file.getName();
             int extension = name.lastIndexOf('.');
             String id = extension > 0 ? name.substring(0, extension) : name;
             if (expected.equals(id.toLowerCase(Locale.US))) {
-                return file;
+                matches.add(file);
             }
         }
-        return null;
+        return Collections.unmodifiableList(matches);
     }
 
     private File getQcItemsFolder(ConfigurationSection settings) {
@@ -334,9 +343,12 @@ public final class CharmManager implements CharmAPI {
                 }
             }
         }
-        if (section.contains("tags")) {
-            plugin.getLogger().warning("Charm '" + id + "' sets 'tags', which is no longer "
-                    + "used: build tags come from classes.<id>.tags only. Remove the line.");
+        List<String> tags = section.getStringList("tags");
+        if (section.get("tags") instanceof String) {
+            String tag = section.getString("tags");
+            if (tag != null && !tag.trim().isEmpty()) {
+                tags = Collections.singletonList(tag.trim());
+            }
         }
         warnRemovedDisplayFields(id, section);
         String key = id.toLowerCase(Locale.US);
@@ -351,7 +363,7 @@ public final class CharmManager implements CharmAPI {
         CharmDefinition definition = new CharmDefinition(id, item.getType(), displayName, lore,
                 withEquipLore(item, equipLore), type, equipLore,
                 slot, null, (short) data, permission,
-                requiredClasses, requiredLevel);
+                requiredClasses, requiredLevel, tags);
         building.charms.put(key, definition);
         if (fromQcItems) {
             if ("NONE".equalsIgnoreCase(typeValue)) {
@@ -386,6 +398,87 @@ public final class CharmManager implements CharmAPI {
 
     public List<String> getEquipSlotTypes() {
         return runtime.equipSlotTypes;
+    }
+
+    /**
+     * Prepares a single exported template against the current runtime, without
+     * reading or reloading any other template files. Call on the server thread.
+     * The live definition is not changed until {@link #commitQcItemUpdate}.
+     */
+    public PreparedQcItemUpdate prepareQcItemUpdate(String id, ItemStack cleanTemplate) {
+        if (id == null || id.trim().isEmpty() || cleanTemplate == null
+                || cleanTemplate.getType() == Material.AIR || cleanTemplate.getAmount() <= 0) {
+            return PreparedQcItemUpdate.failed("invalid-template");
+        }
+
+        String key = id.trim().toLowerCase(Locale.US);
+        ConfigurationSection configured = plugin.getConfig().getConfigurationSection("charms");
+        if (configured != null) {
+            for (String configuredId : configured.getKeys(false)) {
+                ConfigurationSection section = configured.getConfigurationSection(configuredId);
+                if (key.equalsIgnoreCase(configuredId) && section != null
+                        && section.getBoolean("enabled", false)) {
+                    return PreparedQcItemUpdate.failed("config-conflict");
+                }
+            }
+        }
+
+        CharmRuntime base = runtime;
+        CharmRuntimeBuilder previousBuilder = building;
+        try {
+            ItemStack template = cleanTemplate.clone();
+            template.setAmount(1);
+            List<String> lore = template.hasItemMeta() && template.getItemMeta().hasLore()
+                    ? template.getItemMeta().getLore() : Collections.<String>emptyList();
+            List<String> matches = CharmTypeInference.findLoreTypeMatches(lore,
+                    base.equipSlotTypes);
+            if (matches.size() != 1) {
+                return PreparedQcItemUpdate.failed(matches.isEmpty()
+                        ? "missing-type" : "multiple-types");
+            }
+
+            building = new CharmRuntimeBuilder();
+            building.charms.putAll(base.charms);
+            building.qcItemCharmIds.addAll(base.qcItemCharmIds);
+            building.typeSlots.addAll(base.equipSlotTypes);
+            building.charms.remove(key);
+            building.qcItemCharmIds.remove(key);
+
+            YamlConfiguration metadata = new YamlConfiguration();
+            metadata.set("enabled", true);
+            metadata.set("permission", "qingcharms.charm." + key);
+            registerCharm(key, template, metadata, true);
+            CharmDefinition charm = building.charms.get(key);
+            if (charm == null || !charm.matches(template)
+                    || !matches.get(0).equals(charm.getTypeValue())) {
+                return PreparedQcItemUpdate.failed("invalid-template");
+            }
+            return PreparedQcItemUpdate.ready(base, building.build(), charm);
+        } catch (RuntimeException exception) {
+            plugin.getLogger().warning("Could not prepare exported charm '" + key + "': "
+                    + exception.getMessage());
+            return PreparedQcItemUpdate.failed("invalid-template");
+        } finally {
+            building = previousBuilder;
+        }
+    }
+
+    /**
+     * Publishes a prepared export after its file and signed item are delivered.
+     * A reload or another committed export invalidates older candidates. Call on
+     * the server thread; this final operation performs no file or inventory I/O.
+     */
+    public boolean commitQcItemUpdate(PreparedQcItemUpdate update) {
+        if (update == null || update.isFailed() || runtime != update.base) {
+            return false;
+        }
+        runtime = update.updated;
+        return true;
+    }
+
+    /** Invalidates reloads that might have read a temporary export file state. */
+    public void invalidatePreparedReloads() {
+        templateDiskRevision.incrementAndGet();
     }
 
     private ItemStack loadItem(String id, ConfigurationSection section) {
@@ -776,6 +869,8 @@ public final class CharmManager implements CharmAPI {
 
     public PreparedReload prepareReload(YamlConfiguration candidate,
                                         YamlConfiguration guiCandidate) {
+        long diskRevision = templateDiskRevision.get();
+        CharmRuntime base = runtime;
         if (candidate == null) {
             return PreparedReload.failed("candidate configuration is null");
         }
@@ -827,7 +922,7 @@ public final class CharmManager implements CharmAPI {
                 documents.put(file, result.getConfiguration());
             }
         }
-        return PreparedReload.ready(candidate, documents,
+        return PreparedReload.ready(base, diskRevision, candidate, documents,
                 resolveEquipSlotTypes(guiCandidate == null ? null
                         : guiCandidate.getConfigurationSection("gui")));
     }
@@ -837,6 +932,9 @@ public final class CharmManager implements CharmAPI {
             return ReloadResult.failed(prepared == null
                     ? "prepared reload is null" : prepared.getError());
         }
+        if (runtime != prepared.base || templateDiskRevision.get() != prepared.diskRevision) {
+            return ReloadResult.failed("charm definitions changed during reload; please retry");
+        }
         Map<File, YamlConfiguration> previousDocuments = preparedDocuments;
         CharmRuntimeBuilder previousBuilder = building;
         preparedDocuments = prepared.documents;
@@ -845,7 +943,7 @@ public final class CharmManager implements CharmAPI {
         try {
             loadConfigCharms(prepared.getConfiguration().getConfigurationSection("charms"));
             loadQcItemFiles(prepared.getConfiguration().getConfigurationSection("settings"));
-            return ReloadResult.ready(building.build());
+            return ReloadResult.ready(prepared.base, prepared.diskRevision, building.build());
         } catch (RuntimeException exception) {
             return ReloadResult.failed("could not build charm definitions: "
                     + exception.getMessage());
@@ -856,24 +954,66 @@ public final class CharmManager implements CharmAPI {
     }
 
     public boolean commitReload(ReloadResult result) {
-        if (result == null || result.isFailed()) {
+        if (result == null || result.isFailed() || runtime != result.base
+                || templateDiskRevision.get() != result.diskRevision) {
             return false;
         }
         runtime = result.runtime;
         return true;
     }
 
+    public static final class PreparedQcItemUpdate {
+
+        private final CharmRuntime base;
+        private final CharmRuntime updated;
+        private final CharmDefinition charm;
+        private final String error;
+
+        private PreparedQcItemUpdate(CharmRuntime base, CharmRuntime updated,
+                                     CharmDefinition charm, String error) {
+            this.base = base;
+            this.updated = updated;
+            this.charm = charm;
+            this.error = error;
+        }
+
+        private static PreparedQcItemUpdate ready(CharmRuntime base, CharmRuntime updated,
+                                                  CharmDefinition charm) {
+            return new PreparedQcItemUpdate(base, updated, charm, null);
+        }
+
+        private static PreparedQcItemUpdate failed(String error) {
+            return new PreparedQcItemUpdate(null, null, null, error);
+        }
+
+        public boolean isFailed() {
+            return error != null;
+        }
+
+        public String getError() {
+            return error;
+        }
+
+        public CharmDefinition getCharm() {
+            return charm;
+        }
+    }
+
     public static final class PreparedReload {
 
+        private final CharmRuntime base;
+        private final long diskRevision;
         private final YamlConfiguration configuration;
         private final Map<File, YamlConfiguration> documents;
         private final List<String> typeSlots;
         private final String error;
 
-        private PreparedReload(YamlConfiguration configuration,
+        private PreparedReload(CharmRuntime base, long diskRevision, YamlConfiguration configuration,
                                Map<File, YamlConfiguration> documents,
                                List<String> typeSlots,
                                String error) {
+            this.base = base;
+            this.diskRevision = diskRevision;
             this.configuration = configuration;
             this.documents = documents == null
                     ? Collections.<File, YamlConfiguration>emptyMap()
@@ -884,14 +1024,15 @@ public final class CharmManager implements CharmAPI {
             this.error = error;
         }
 
-        private static PreparedReload ready(YamlConfiguration configuration,
+        private static PreparedReload ready(CharmRuntime base, long diskRevision,
+                                            YamlConfiguration configuration,
                                             Map<File, YamlConfiguration> documents,
                                             List<String> typeSlots) {
-            return new PreparedReload(configuration, documents, typeSlots, null);
+            return new PreparedReload(base, diskRevision, configuration, documents, typeSlots, null);
         }
 
         private static PreparedReload failed(String error) {
-            return new PreparedReload(null, null, null, error);
+            return new PreparedReload(null, -1L, null, null, null, error);
         }
 
         public boolean isFailed() {
@@ -913,20 +1054,26 @@ public final class CharmManager implements CharmAPI {
 
     public static final class ReloadResult {
 
+        private final CharmRuntime base;
+        private final long diskRevision;
         private final CharmRuntime runtime;
         private final String error;
 
-        private ReloadResult(CharmRuntime runtime, String error) {
+        private ReloadResult(CharmRuntime base, long diskRevision,
+                             CharmRuntime runtime, String error) {
+            this.base = base;
+            this.diskRevision = diskRevision;
             this.runtime = runtime;
             this.error = error;
         }
 
-        private static ReloadResult ready(CharmRuntime runtime) {
-            return new ReloadResult(runtime, null);
+        private static ReloadResult ready(CharmRuntime base, long diskRevision,
+                                          CharmRuntime runtime) {
+            return new ReloadResult(base, diskRevision, runtime, null);
         }
 
         private static ReloadResult failed(String error) {
-            return new ReloadResult(null, error);
+            return new ReloadResult(null, -1L, null, error);
         }
 
         public boolean isFailed() {

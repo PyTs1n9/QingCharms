@@ -74,24 +74,8 @@ public final class CharmTypeInference {
     /** Returns the only GUI slot type named in Lore, or empty when ambiguous. */
     public static String inferUniqueLoreType(Collection<String> lore,
                                              Collection<String> slotTypes) {
-        if (lore == null || slotTypes == null || slotTypes.isEmpty()) {
-            return "";
-        }
-        LinkedHashSet<String> matches = new LinkedHashSet<String>();
-        for (String line : lore) {
-            String normalizedLine = CharmItemSignature.normalizeSearch(line);
-            if (normalizedLine.isEmpty()) {
-                continue;
-            }
-            for (String type : slotTypes) {
-                if (type != null && !type.trim().isEmpty()
-                        && normalizedLine.contains(
-                                CharmItemSignature.normalizeSearch(type))) {
-                    addIgnoreCase(matches, type.trim());
-                }
-            }
-        }
-        return matches.size() == 1 ? matches.iterator().next() : "";
+        List<String> matches = findLoreTypeMatches(lore, slotTypes);
+        return matches.size() == 1 ? matches.get(0) : "";
     }
 
     private static void addIgnoreCase(Collection<String> values, String value) {
@@ -115,9 +99,8 @@ public final class CharmTypeInference {
                 continue;
             }
             for (String type : slotTypes) {
-                if (type != null && !type.trim().isEmpty()
-                        && normalizedLine.contains(
-                                CharmItemSignature.normalizeSearch(type))) {
+                String candidate = CharmItemSignature.normalizeSearch(type);
+                if (!candidate.isEmpty() && normalizedLine.contains(candidate)) {
                     addIgnoreCase(matches, type.trim());
                 }
             }

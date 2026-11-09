@@ -115,4 +115,26 @@ public final class GuiDefinitionTest {
         assertEquals("interface", definition.getSlot(1).getAction());
         assertFalse(definition.getSlot(1).requiresType());
     }
+
+    @Test
+    public void loadsDedicatedBuildDisplayOutsideNormalSlotList() throws Exception {
+        YamlConfiguration yaml = new YamlConfiguration();
+        yaml.loadFromString(
+                "gui:\n"
+                        + "  rows: 1\n"
+                        + "  build-display:\n"
+                        + "    slot: 4\n"
+                        + "    name: '&bBuilds'\n"
+                        + "  slots:\n"
+                        + "    filler:\n"
+                        + "      slot: 0\n");
+
+        GuiDefinition definition = GuiDefinition.fromConfig(
+                yaml.getConfigurationSection("gui"));
+
+        assertNotNull(definition.getBuildDisplay());
+        assertEquals(4, definition.getBuildDisplay().getSlot());
+        assertEquals(1, definition.getSlots().size());
+        assertNull(definition.getSlot(4));
+    }
 }

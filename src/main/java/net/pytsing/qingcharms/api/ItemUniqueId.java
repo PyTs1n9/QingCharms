@@ -136,10 +136,25 @@ public final class ItemUniqueId {
         }
         List<String> lore = meta.hasLore() && meta.getLore() != null
                 ? new ArrayList<String>(meta.getLore()) : new ArrayList<String>();
-        if (lore.isEmpty()) {
+        int anchor = -1;
+        for (int index = lore.size() - 1; index >= 0; index--) {
+            if (!stripHiddenData(lore.get(index)).isEmpty()) {
+                anchor = index;
+                break;
+            }
+        }
+        if (anchor < 0) {
+            for (int index = lore.size() - 1; index >= 0; index--) {
+                if (isIdentityLine(lore.get(index))) {
+                    anchor = index;
+                    break;
+                }
+            }
+        }
+        if (anchor < 0) {
             lore.add(line);
         } else {
-            lore.set(lore.size() - 1, lore.get(lore.size() - 1) + line);
+            lore.set(anchor, lore.get(anchor) + line);
         }
         meta.setLore(lore);
         item.setItemMeta(meta);
@@ -169,7 +184,8 @@ public final class ItemUniqueId {
                     }
                 }
             }
-            if (rebuilt.length() > 0) {
+            // Preserve intentional spacing; only identity-only rows disappear.
+            if (rebuilt.length() > 0 || line.isEmpty()) {
                 lore.add(rebuilt.toString());
             }
         }

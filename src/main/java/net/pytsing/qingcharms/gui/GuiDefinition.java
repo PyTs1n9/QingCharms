@@ -22,13 +22,20 @@ public final class GuiDefinition {
     private final int rows;
     private final String permission;
     private final List<GuiSlot> slots;
+    private final GuiSlot buildDisplay;
 
     public GuiDefinition(String title, int rows, String permission, List<GuiSlot> slots) {
+        this(title, rows, permission, slots, null);
+    }
+
+    private GuiDefinition(String title, int rows, String permission, List<GuiSlot> slots,
+                         GuiSlot buildDisplay) {
         this.title = title == null || title.trim().isEmpty() ? "&8青玉护符装备" : title;
         this.rows = clampRows(rows);
         this.permission = permission == null ? "" : permission;
         this.slots = Collections.unmodifiableList(new ArrayList<GuiSlot>(
                 slots == null ? Collections.<GuiSlot>emptyList() : slots));
+        this.buildDisplay = buildDisplay;
     }
 
     public static GuiDefinition fromConfig(ConfigurationSection section) {
@@ -93,7 +100,29 @@ public final class GuiDefinition {
                 slots.add(parsed);
             }
         }
-        return new GuiDefinition(title, rows, permission, slots);
+        GuiSlot buildDisplay = null;
+        ConfigurationSection displaySection = section.getConfigurationSection("build-display");
+        if (displaySection != null) {
+            Integer position = parseSlotPosition(displaySection, "build-display");
+            if (position == null || position.intValue() >= rows * 9) {
+                warn(logger, "Ignoring gui.build-display: slot is outside the configured GUI.");
+            } else if (findSlot(slots, position.intValue()) != null) {
+                warn(logger, "Ignoring gui.build-display: slot " + position
+                        + " is already used by another GUI slot.");
+            } else {
+                if (position.intValue() == 4 && logger != null) {
+                    logger.warning("gui.build-display uses the default header position 4; "
+                            + "ensure gui.slots does not define this position.");
+                }
+                int itemId = displaySection.getInt("id", 339);
+                short data = (short) displaySection.getInt("id_data", 0);
+                String name = first(displaySection.getString("name", null), "&b当前构筑效果");
+                List<String> lore = displaySection.getStringList("empty-lore");
+                buildDisplay = new GuiSlot(position.intValue(), itemId, data,
+                        name, lore, "NONE", "none", "");
+            }
+        }
+        return new GuiDefinition(title, rows, permission, slots, buildDisplay);
     }
 
     private static int clampRows(int rows) {
@@ -188,5 +217,9 @@ public final class GuiDefinition {
 
     public GuiSlot getSlot(int slot) {
         return findSlot(slots, slot);
+    }
+
+    public GuiSlot getBuildDisplay() {
+        return buildDisplay;
     }
 }

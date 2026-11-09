@@ -2,6 +2,7 @@ package net.pytsing.qingcharms.command;
 
 import net.pytsing.qingcharms.QingCharmsPlugin;
 import net.pytsing.qingcharms.api.ItemUniqueId;
+import net.pytsing.qingcharms.creation.CharmTemplateService;
 import net.pytsing.qingcharms.build.EquipmentRequirementResult;
 import net.pytsing.qingcharms.config.ConfigManager;
 import net.pytsing.qingcharms.storage.BackupStatus;
@@ -11,10 +12,8 @@ import net.pytsing.qingcharms.manager.CharmManager;
 import net.pytsing.qingcharms.model.CharmDefinition;
 import net.pytsing.qingcharms.model.CharmItemSignature;
 import net.pytsing.qingcharms.util.InventoryUtils;
-import net.pytsing.qingcharms.util.ItemStackYaml;
 import net.pytsing.qingcharms.util.MessageUtils;
 import net.pytsing.qingcharms.util.PermissionUtils;
-import net.pytsing.qingcharms.util.YamlUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -22,10 +21,8 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -34,7 +31,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Pattern;
 import java.text.SimpleDateFormat;
 
 public final class QingCharmsCommand implements CommandExecutor, TabCompleter {
@@ -42,7 +38,6 @@ public final class QingCharmsCommand implements CommandExecutor, TabCompleter {
     private static final List<String> SUB_COMMANDS = Collections.unmodifiableList(
             Arrays.asList("help", "list", "reload", "give", "export", "gui", "build",
                     "status", "save", "backup", "check"));
-    private static final Pattern ID_PATTERN = Pattern.compile("[a-z0-9_-]{1,32}");
 
     private final QingCharmsPlugin plugin;
 
@@ -242,94 +237,64 @@ public final class QingCharmsCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        String id = args[1].toLowerCase(Locale.US);
-        if (!ID_PATTERN.matcher(id).matches()) {
-            MessageUtils.send(sender, "command.export.invalid-id");
-            return true;
-        }
-
         boolean overwrite = args.length == 3 && "-f".equalsIgnoreCase(args[2]);
         if (args.length == 3 && !overwrite) {
             MessageUtils.send(sender, "command.export.usage-v2");
             return true;
         }
-
         org.bukkit.entity.Player player = (org.bukkit.entity.Player) sender;
-        org.bukkit.inventory.ItemStack item = player.getItemInHand();
-        if (item == null || item.getType() == Material.AIR) {
-            MessageUtils.send(sender, "command.export.empty-hand");
-            return true;
-        }
-
-        File folder = plugin.getCharmManager().getQcItemsFolder();
-        if (folder == null) {
-            MessageUtils.send(sender, "command.export.failed");
-            return true;
-        }
-        ConfigurationSection configuredCharms = plugin.getConfig()
-                .getConfigurationSection("charms");
-        if (configuredCharms != null) {
-            for (String configuredId : configuredCharms.getKeys(false)) {
-                ConfigurationSection configuredCharm =
-                        configuredCharms.getConfigurationSection(configuredId);
-                if (id.equalsIgnoreCase(configuredId) && configuredCharm != null
-                        && configuredCharm.getBoolean("enabled", false)) {
-                    MessageUtils.send(sender, "command.export.config-conflict", id);
-                    return true;
+        CharmTemplateService.Result result = new CharmTemplateService(
+                plugin.getCharmManager()).export(player, args[1], overwrite);
+        switch (result.getStatus()) {
+            case SUCCESS:
+                MessageUtils.send(sender, "overwritten".equals(result.getDetail())
+                        ? "command.export.overwritten" : "command.export.success",
+                        result.getId(), result.getFile().getAbsolutePath());
+                MessageUtils.send(player, "command.export.signed-v3");
+                try {
+                    player.updateInventory();
+                } catch (RuntimeException exception) {
+                    plugin.getLogger().warning("Could not refresh inventory after export: "
+                            + exception.getMessage());
                 }
-            }
+                break;
+            case INVALID_ID:
+                MessageUtils.send(sender, "command.export.invalid-id");
+                break;
+            case EMPTY_HAND:
+                MessageUtils.send(sender, "command.export.empty-hand");
+                break;
+            case CONFIG_CONFLICT:
+                MessageUtils.send(sender, "command.export.config-conflict", result.getId());
+                break;
+            case ALREADY_EXISTS:
+                MessageUtils.send(sender, "command.export.already-exists", result.getId());
+                break;
+            case DUPLICATE_ID:
+                MessageUtils.send(sender, "command.export.duplicate-id-v3", result.getId());
+                break;
+            case MISSING_TYPE:
+                MessageUtils.send(sender, "command.export.missing-lore-type");
+                break;
+            case AMBIGUOUS_TYPE:
+                MessageUtils.send(sender, "command.export.multiple-types-v2",
+                        String.join(", ", result.getTypes()));
+                break;
+            case NO_SPACE:
+                MessageUtils.send(sender, "command.export.no-space-v3");
+                break;
+            case RECOVERY_FAILED:
+                plugin.getLogger().severe("Export recovery failed for '" + result.getId()
+                        + "' at " + result.getFile() + ": " + result.getDetail());
+                MessageUtils.send(sender, "command.export.recovery-failed-v3");
+                break;
+            default:
+                plugin.getLogger().warning("Export failed for '" + result.getId()
+                        + "' (" + result.getStatus() + ") at " + result.getFile()
+                        + ": " + result.getDetail());
+                MessageUtils.send(sender, "command.export.failed-v3");
+                break;
         }
-
-        File existingFile = plugin.getCharmManager().findQcItemFile(id);
-        File file = existingFile == null ? new File(folder, id + ".yml") : existingFile;
-        boolean existed = file.exists();
-        if (existed && !overwrite) {
-            MessageUtils.send(sender, "command.export.already-exists", id);
-            return true;
-        }
-
-        // Templates must not carry the previous instance signature, otherwise the
-        // hidden ID/token would be baked into every /qc give copy.
-        org.bukkit.inventory.ItemStack template =
-                net.pytsing.qingcharms.api.ItemUniqueId.withoutIdentityLore(item.clone());
-        List<String> lore = template.hasItemMeta() && template.getItemMeta().hasLore()
-                ? template.getItemMeta().getLore() : Collections.<String>emptyList();
-        List<String> types = net.pytsing.qingcharms.manager.CharmTypeInference
-                .findLoreTypeMatches(lore, plugin.getCharmManager().getEquipSlotTypes());
-        if (types.size() != 1) {
-            MessageUtils.send(sender, types.isEmpty()
-                    ? "command.export.missing-lore-type"
-                    : "command.export.multiple-types-v2",
-                    types.isEmpty() ? id : String.join(", ", types));
-            return true;
-        }
-
-        YamlConfiguration yaml = new YamlConfiguration();
-        yaml.set("Item", ItemStackYaml.serializeForExport(template));
-        yaml.set("charm.enabled", true);
-        yaml.set("charm.permission", "qingcharms.charm." + id);
-        try {
-            YamlUtils.save(file, yaml);
-        } catch (java.io.IOException exception) {
-            plugin.getLogger().severe("Could not export held item to "
-                    + file.getAbsolutePath() + ": " + exception.getMessage());
-            MessageUtils.send(sender, "command.export.failed");
-            return true;
-        }
-
-        plugin.getCharmManager().load();
-        net.pytsing.qingcharms.model.CharmDefinition loaded = plugin.getCharmManager()
-                .getCharm(id).orElse(null);
-        if (loaded == null || !plugin.getCharmManager().isQcItemCharm(id)
-                || !loaded.matches(template)) {
-            MessageUtils.send(sender, "command.export.load-failed", id);
-            return true;
-        }
-        MessageUtils.send(sender, existed
-                ? "command.export.overwritten" : "command.export.success", id,
-                file.getAbsolutePath());
-
-        signHeldItem(player, id, template);
         return true;
     }
 
@@ -422,49 +387,6 @@ public final class QingCharmsCommand implements CommandExecutor, TabCompleter {
             required.add(CharmItemSignature.normalizeMatch(line));
         }
         return signature.getNormalizedLore().containsAll(required);
-    }
-
-    /**
-     * Re-issues the exported charm as a server-signed instance in the player's
-     * hand, so an item built with /lore becomes recognizable and equippable
-     * without an extra /qc give round trip.
-     */
-    private void signHeldItem(org.bukkit.entity.Player player, String id,
-                              org.bukkit.inventory.ItemStack template) {
-        net.pytsing.qingcharms.model.CharmDefinition charm =
-                plugin.getCharmManager().getCharm(id).orElse(null);
-        if (charm == null) {
-            MessageUtils.send(player, "command.export.sign-missing", id);
-            return;
-        }
-        if (!charm.matches(template)) {
-            MessageUtils.send(player, "command.export.sign-mismatch", id);
-            return;
-        }
-
-        org.bukkit.inventory.ItemStack signed =
-                plugin.getCharmManager().createCharmInstance(charm);
-        if (signed == null || signed.getType() == Material.AIR) {
-            MessageUtils.send(player, "command.export.sign-missing", id);
-            return;
-        }
-
-        org.bukkit.inventory.ItemStack current = player.getItemInHand();
-        int amount = current == null ? 1 : current.getAmount();
-        if (amount <= 1) {
-            player.setItemInHand(signed);
-        } else {
-            org.bukkit.inventory.ItemStack rest = current.clone();
-            rest.setAmount(amount - 1);
-            player.setItemInHand(rest);
-            java.util.Map<Integer, org.bukkit.inventory.ItemStack> leftovers =
-                    player.getInventory().addItem(signed);
-            if (!leftovers.isEmpty()) {
-                player.getWorld().dropItemNaturally(player.getLocation(), signed);
-            }
-        }
-        player.updateInventory();
-        MessageUtils.send(player, "command.export.signed");
     }
 
     private boolean handleGive(CommandSender sender, String[] args) {
@@ -680,16 +602,20 @@ public final class QingCharmsCommand implements CommandExecutor, TabCompleter {
         }
         org.bukkit.entity.Player player = (org.bukkit.entity.Player) sender;
         java.util.List<String> classNames = plugin.getBuildResolver().getActiveClassNames(player);
-        java.util.Set<String> tags = plugin.getAPI().getRecommendedTags(player);
+        net.pytsing.qingcharms.build.BuildResolution resolution =
+                plugin.getAPI().resolveBuild(player);
+        java.util.Map<String, Integer> tagCounts = resolution.getTags().getBuildCounts();
         MessageUtils.send(sender, "command.build.header");
         MessageUtils.send(sender, "command.build.classes",
                 classNames.isEmpty() ? MessageUtils.get("command.build.none")
                         : String.join(", ", classNames));
+        java.util.List<String> tagEntries = new ArrayList<String>();
+        for (java.util.Map.Entry<String, Integer> entry : tagCounts.entrySet()) {
+            tagEntries.add(entry.getKey() + " ×" + entry.getValue());
+        }
         MessageUtils.send(sender, "command.build.tags",
-                tags.isEmpty() ? MessageUtils.get("command.build.none")
-                        : String.join(", ", tags));
-        net.pytsing.qingcharms.build.BuildResolution resolution =
-                plugin.getAPI().resolveBuild(player);
+                tagEntries.isEmpty() ? MessageUtils.get("command.build.none")
+                        : String.join(", ", tagEntries));
         java.util.List<String> ruleNames = new ArrayList<String>();
         for (net.pytsing.qingcharms.build.BuildRule rule
                 : resolution.getSnapshot().getActiveRules()) {

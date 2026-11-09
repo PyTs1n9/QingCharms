@@ -1,12 +1,12 @@
 # QingCharms青玉
 
-Minecraft 饰品护符插件，兼容 Spigot/Bukkit `1.8 - 1.12.2`，当前版本 `0.2.0`。
+Minecraft 饰品护符插件，兼容 Spigot/Bukkit `1.8 - 1.12.2`，当前版本 `0.2.1`。
 
 > 插件显示名 **QingCharms青玉**；`plugin.yml` 内部的 `name` 保持 `QingCharms`（Bukkit 只接受字母数字和 `-`/`_`，且该值决定数据目录 `plugins/QingCharms/`）。
 
-> 本 README 的命令、配置和行为说明对应当前 `0.2.0` 实现。重新定义后的职责边界与构筑目标见 [`docs/plugin-boundaries.md`](docs/plugin-boundaries.md)，该目标边界尚未整体落地；后续开发以该边界文档和根目录 `AGENTS.md` 为准。
+> 本 README 按当前实现说明。构筑词条与 ILS 桥接边界见 [`docs/plugin-boundaries.md`](docs/plugin-boundaries.md)。
 
-QingCharms 只负责**护符识别、装备 GUI、槽位限制、玩家数据持久化**，以及把已装备的完整 `ItemStack` 交给 ItemLoreStats（ILS）。它不计算属性、不结算战斗、不实现主动技能。
+QingCharms 负责**护符识别、装备 GUI、槽位限制、玩家数据持久化和构筑条件判定**，并将已装备的完整 `ItemStack` 与运行时构筑效果物品交给 ItemLoreStats（ILS）。它不解析属性数值、不结算战斗、不实现主动技能。
 
 ---
 
@@ -18,6 +18,7 @@ QingCharms 只负责**护符识别、装备 GUI、槽位限制、玩家数据持
 | 自定义槽位与装备限制 | 负责 | 不负责 |
 | 玩家装备数据持久化 | 负责 | 不负责 |
 | 完整物品及 Lore 传递 | 负责 | 读取 |
+| 饰品构筑词条计数、条件判定及效果 Lore 生成 | 负责 | 读取效果 Lore |
 | 攻击、生命、吸血、暴击等属性 | 不参与 | 根据 Lore 计算 |
 | 被动效果与技能等级 | 不参与 | 根据 Lore 处理 |
 | 战斗结算 | 不参与 | 负责 |
@@ -45,10 +46,10 @@ QingCharms 只负责**护符识别、装备 GUI、槽位限制、玩家数据持
 mvn clean package
 ```
 
-产物：`target/QingCharms-0.2.0.jar`
+产物：`target/QingCharms-0.2.1.jar`
 
 1. 把 JAR 放进服务器 `plugins/`。
-2. 启动服务器，自动生成 `config.yml`、`classes.yml`、`gui.yml`、`progression.yml`、`language_zh.yml`、`qcItems/`、`playerdata/`、`DataBacked/`。
+2. 启动服务器，自动生成 `config.yml`、`classes.yml`、`builds.yml`、`gui.yml`、`progression.yml`、`language_zh.yml`、`qcItems/`、`playerdata/`、`DataBacked/`。
 3. 编辑配置后执行 `/qc reload`。
 4. 需要属性与被动效果时，安装并配置 ILS。
 
@@ -57,8 +58,9 @@ mvn clean package
 | 文件 | 内容 |
 | --- | --- |
 | `config.yml` | 全局设置、触发提示、装备反馈、护符定义（`charms`） |
-| `gui.yml` | 装备 GUI 的行数、标题、槽位、权限 |
-| `classes.yml` | 职业（`classes`）与构筑规则（`rules`） |
+| `gui.yml` | 装备 GUI 的行数、标题、槽位、权限及构筑展示槽 |
+| `classes.yml` | 职业（`classes`）、推荐词条和玩家装备限制；旧 `rules` 不再参与构筑 |
+| `builds.yml` | 构筑条件和 ILS 属性 Lore |
 | `progression.yml` | 护符成长系统 |
 | `language_zh.yml` | 全部提示文本 |
 | `qcItems/*.yml` | 逐件护符的物品定义（可由 `/qc export` 生成） |
@@ -96,9 +98,16 @@ mvn clean package
 
 1. 剥离物品上旧的实例签名，把干净的 `Item` 写入 `qcItems/<id>.yml`，同时写好启用状态和默认权限。
 2. 从物品 Lore 匹配 `gui.yml` 中的槽位 `type`。必须且只能命中一种；未命中或命中多种都会拒绝导出。显示名不参与类型识别。
-3. 立即加载模板，并把手中物品替换为带服务端签名的实例；随后可用 `/qc give <id> [player]` 发放副本。
+3. 校验模板序列化结果，只更新本次 ID 的运行定义，并把手中物品替换为一件带服务端签名的实例；随后可用 `/qc give <id> [player]` 发放副本。其他模板的手工修改仍需 `/qc reload`，不会被本次导出顺带加载。
+
+手持一叠物品时，签名单件留在手上，其余原物品放回背包；背包放不下则在写文件前拒绝，不会掉落物品。写盘、读回校验、背包交付或运行定义提交失败时，会恢复原模板文件和背包并报告失败；若恢复本身遇到磁盘或背包接口错误，控制台会记录严重错误，管理员应立即核查。
 
 默认拒绝覆盖已有 ID；加 `-f` 才覆盖。启用中的 `config.yml` 同 ID 定义优先级更高，因此导出会拒绝冲突 ID。旧 `qcItems` 文件仍可读取，显式配置的 `charm.type` 也继续兼容。
+
+- 子目录或不同扩展名中有多个同 ID 文件时，导出会拒绝，须先保留唯一模板。
+- `-f` 会用新的最简模板替换整个旧文件，包括手工添加的权限、等级与职业限制；需要这些限制时请重新填写并重载。
+- 覆盖模板不会自动更新已发出的旧副本；外观不再满足新定义时，旧副本可能无法识别。
+- 导出成长物品只复制清理身份后的物品外观与 Lore，不复制实例 UUID 或玩家成长记录；导出和发放都会生成新实例。
 
 ### 可选限制
 
@@ -144,6 +153,7 @@ charm:
 - 物品没有 `display-name` 时不校验名字，只按材质、`data`（若配置）和 Lore 识别。
 - 同 ID 时 `config.yml` 中的定义优先。
 - 新模板不写 `type`：加载期只从 Lore 匹配 `gui.yml` 的槽位类型，且必须唯一。旧文件显式写入的 `type` 仍兼容。
+- 模板数量固定为 1，去除旧实例 UUID 与认证令牌；原有名称、普通 Lore（包括排版空行）、附魔及其他 ItemMeta 保留。
 
 ### 3. 排错：`/qc check`
 
@@ -349,121 +359,33 @@ trigger-message:
 
 ---
 
-## 职业构筑（羁绊）
+## 职业构筑
 
-构筑只做条件解析与 Lore 编译，属性仍由 ILS 读取最终 Lore 计算。
+构筑词条配置在饰品定义的 `tags` 中；每件已装备饰品对每个不同词条贡献 1 次，同一件饰品的重复词条只计一次。职业配置仍用于玩家职业识别、装备限制和推荐展示，不参与构筑词条计数。
 
-| 组件 | 职责 |
-| --- | --- |
-| `ClassResolver` | 只调 `player.hasPermission()` 解析职业 |
-| `TagResolver` | 统计整个 GUI：每件已装备饰品给职业的每个标签各 +1 |
-| `RuleResolver` | 解析 `bond` 规则并做档位筛选 |
-| `BuildResolver` | 组合职业、标签、规则，处理装备校验与构筑变更 |
-| `LoreCompiler` | 清扫旧动态 Lore，生成独立的构筑效果 Lore 物品 |
-| `BuildSnapshot` | 固化当次结果：职业、标签计数、激活规则 |
-
-### 标签只有一个来源
-
-标签**只**来自 `classes.yml` 的 `classes.<id>.tags`。饰品（`config.yml` 的 `charms.*` 与 `qcItems`）不再支持 `tags`，写了会提示并忽略。
-
-计数规则：GUI 内每件已装备饰品，都会给当前职业的**每个**标签各计 1 次。
-
-- 圣骑士 `tags: [圣光]` 装 3 件 → `圣光 = 3`
-- 圣骑士 `tags: [圣光, 守护]` 装 3 件 → `圣光 = 3`、`守护 = 3`
-- 一件没装 → 全部为 0
-
-### 职业
+构筑规则位于独立的 `builds.yml`。每个条件分别比较一个词条数量，同一构筑的全部条件必须成立；`lt`、`gt`、`eq`、`gteq`、`lteq` 均可用。多个构筑可以同时触发。
 
 ```yaml
-classes:
-  paladin:
-    name: "圣骑士"                      # /qc build 显示，支持 & 颜色码
-    permission: "deluxetags.tag.sqs"    # 只认权限，不认称号字符串
-    tags: [圣光, 守护]
-    recommended-tags: [圣光, 守护, 治疗] # 仅 /qc build 的推荐提示
-  warrior:
-    name: "战士"
-    permission: "deluxetags.tag.warrior"
-    tags: [力量, 壁垒]
+# config.yml 或 qcItems/<id>.yml 的 charm 节点
+charms:
+  fire-gem:
+    tags: [火]
+
+# builds.yml
+builds:
+  flame-moment:
+    name: "焱之时刻"
+    condition:
+      - tags: 火
+        count: 3
+        operator: gteq
+    attribute:
+      - "暴击率: +30%（焱之时刻）"
 ```
 
-多个职业权限可以同时生效，标签会叠加。权限由 GroupManager 之类分配。
+`attribute` 必须是 ILS 可识别的完整 Lore 行。QingCharms 不解析数值，只把触发构筑的名称与 Lore 展示在 `gui.yml` 的 `gui.build-display` 槽，并将单件运行时效果物品加入 `EquipmentSnapshot`。效果物品不修改基础饰品或玩家存档；关闭 GUI 后仍通过 API 提供给 ILS。相同 Lore 行会按每个触发构筑分别保留，因此会分别参与 ILS 汇总。
 
-### 规则
-
-只有 `bond` 一种算法，**不需要写 `type`**，判定为 `tags` 中所有标签的计数**相加** `>= count`。
-
-```yaml
-rules:
-  holy-bond:
-    name: "圣光祝福"          # /qc build「已激活羁绊」显示的名字，不写则用规则 ID
-    tags: [圣光]
-    count: 2
-    add-lore:
-      - "&f防御: +5%"
-
-  holy-guard-bond:
-    name: "圣光守护"
-    tags: [圣光, 守护]
-    count: 4
-    add-lore:
-      - "&f伤害减免: +5%"
-
-  paladin-build:
-    name: "黎明守卫"
-    classes: [paladin]        # 可选职业门槛
-    tags: [守护]
-    count: 2
-    add-lore:
-      - "&f生命: +5%"
-```
-
-| 字段 | 说明 |
-| --- | --- |
-| `enabled` | 是否启用，默认 true |
-| `name` | 可选展示名，不写回退成规则 ID |
-| `group` | 可选档位分组名，不写则按 `tags` 组合自动分组 |
-| `tags` | 参与计算的标签 |
-| `count` | 需要的计数总和，默认 2 |
-| `classes` / `class` | 可选职业门槛 |
-| `requirements` | 可选，给单个标签设最低数量 |
-| `add-lore` | 必填，激活后编译进构筑 Lore 的最终属性行 |
-
-**档位：只有最高的一档生效。** `tags` 组合相同的规则互相竞争，`count` 最高者获胜；`count` 相同的算同档并列，会一起生效。
-
-```yaml
-holy-bond:       # count: 2 → 装 2~4 件时生效
-holy-bond-pro:   # count: 5 → 装 5 件后生效，低档自动熄灭
-```
-
-`count` 怎么估：
-
-- 单标签：`count` 就等于「需要装几件」。
-- 多标签：每件给每个标签各 +1，所以 `tags: [圣光, 守护] count: 4` 也是「装 2 件」。
-
-`requirements` 给单标签设下限：
-
-```yaml
-requirements:
-  圣光: 3
-  守护: 1
-```
-
-`add-lore` 必须写成 ILS 能识别的最终格式（如 `&f攻击力: +10%`）。相同文本跨规则去重，并且**不会写进玩家装备**：构筑效果被编译成一件独立的虚拟物品，只在 `EquipmentSnapshot` 中交给 ILS。
-
-### 已移除的旧写法
-
-`type`、`synergy`、`conflict`、`mode`、`suppress-rules` 都已下线：写了会在控制台提示但规则仍按 `bond` 生效；冲突机制整体移除，装备不再互相排斥。
-
-### 玩家侧
-
-```yaml
-requirements:
-  player-level: 30      # 只表示原版玩家等级，不是护符成长等级
-  classes: [paladin]    # 满足任意一个即可
-```
-
-`/qc build` 输出当前职业名、契合特质和已激活羁绊，仅展示，不会自动装备。
+`classes.yml` 中旧版 `rules` 不再计算，文件内容会保留；请将需要保留的构筑转换到 `builds.yml`。`/qc build` 展示当前职业、已计词条和激活构筑。
 
 ---
 
@@ -760,6 +682,11 @@ charms:
 ---
 
 ## 版本差异
+
+### 0.2.1
+
+- 构筑词条改为由饰品定义贡献，支持多条件比较及同时触发，并增加 GUI 构筑效果展示。
+- 运行时构筑效果通过装备快照提供给 ILS；禁止同一饰品 ID 重复装备。
 
 ### 0.2.0
 

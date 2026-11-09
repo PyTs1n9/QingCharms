@@ -32,4 +32,14 @@ public final class CharmTypeInferenceTest {
                         Collections.singletonList("天空宝石"),
                         Arrays.asList("宝石", "天空宝石")));
     }
+
+    @Test
+    public void ignoresGuiTypesWithNoVisibleText() {
+        assertEquals("", CharmTypeInference.inferUniqueLoreType(
+                Collections.singletonList("攻击: +100"),
+                Arrays.asList(null, "", " ", "§a")));
+        assertEquals(Collections.singletonList("项链"),
+                CharmTypeInference.findLoreTypeMatches(Collections.singletonList("项链"),
+                        Arrays.asList("§a", "项链")));
+    }
 }

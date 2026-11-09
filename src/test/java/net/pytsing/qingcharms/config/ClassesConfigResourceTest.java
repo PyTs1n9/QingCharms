@@ -13,14 +13,20 @@ import static org.junit.Assert.assertNotNull;
 public final class ClassesConfigResourceTest {
 
     @Test
-    public void separatesClassesAndRulesIntoOwnResource() throws Exception {
+    public void separatesClassesFromGlobalConfiguration() throws Exception {
         YamlConfiguration config = loadResource("config.yml");
         YamlConfiguration classes = loadResource("classes.yml");
 
         assertFalse(config.isConfigurationSection("classes"));
         assertFalse(config.isConfigurationSection("rules"));
         assertNotNull(classes.getConfigurationSection("classes"));
-        assertNotNull(classes.getConfigurationSection("rules"));
+    }
+
+    @Test
+    public void buildRulesLiveInDedicatedResource() throws Exception {
+        YamlConfiguration builds = loadResource("builds.yml");
+
+        assertNotNull(builds.get("builds"));
     }
 
     private YamlConfiguration loadResource(String name) throws Exception {

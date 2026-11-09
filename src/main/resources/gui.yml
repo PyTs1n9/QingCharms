@@ -24,6 +24,12 @@ gui:
   row: 6
   permission: qingcharms.gui
   title: "&9&l&o灵魂饰品"
+  build-display:
+    slot: 4
+    id: 339
+    name: "&b当前构筑效果"
+    empty-lore:
+      - "&8暂无已激活构筑"
   slots:
     # 槽位名称可自由增删；slot/position 或数字名称决定 GUI 位置。
     helmet_13:
@@ -183,11 +189,6 @@ gui:
       name: "&7&l&o灵魂饰品"
     bk-3:
       slot: 3
-      id: 160
-      id_data: 11
-      name: "&7&l&o灵魂饰品"
-    bk-4:
-      slot: 4
       id: 160
       id_data: 11
       name: "&7&l&o灵魂饰品"

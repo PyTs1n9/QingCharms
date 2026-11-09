@@ -1,0 +1,14 @@
+# QingCharms 构筑配置。
+# 每个已装备饰品对其 tags 中每个不同词条贡献 1 次。
+# condition 中所有条件均需满足；匹配的多个构筑同时生效。
+# attribute 为交给 ILS 解析的完整 Lore 行，不在 QingCharms 内解析数值。
+builds: {}
+  # 示例：
+  # flame-moment:
+  #   name: "焱之时刻"
+  #   condition:
+  #     - tags: "火"
+  #       count: 3
+  #       operator: gteq
+  #   attribute:
+  #     - "暴击率: +30%（焱之时刻）"

@@ -22,6 +22,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -100,6 +101,7 @@ public final class GuiManager {
             }
             inventory.setItem(slot.getSlot(), displayItem);
         }
+        renderBuildDisplay(player, playerData, inventory);
         player.openInventory(inventory);
         return true;
     }
@@ -295,6 +297,10 @@ public final class GuiManager {
         }
 
         PlayerData playerData = plugin.getDataManager().loadPlayer(player.getUniqueId());
+        if (isCharmEquippedElsewhere(playerData, slotId, charm.getId())) {
+            MessageUtils.send(player, "gui.equip.duplicate");
+            return;
+        }
         if (!replaceOccupied && hasEquippedItem(playerData, slotId)) {
             MessageUtils.send(player, "gui.equip.slot-full");
             return;
@@ -494,6 +500,50 @@ public final class GuiManager {
             }
         }
         return result;
+    }
+
+    private boolean isCharmEquippedElsewhere(PlayerData data, String targetSlot,
+                                              String charmId) {
+        if (data == null || charmId == null) {
+            return false;
+        }
+        for (String slot : data.getEquippedSlotIds()) {
+            if (slot.equalsIgnoreCase(targetSlot)) {
+                continue;
+            }
+            Optional<CharmDefinition> equipped = plugin.getCharmManager()
+                    .getCharmByItem(data.getEquipped(slot));
+            if (equipped.isPresent() && charmId.equalsIgnoreCase(equipped.get().getId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void renderBuildDisplay(Player player, PlayerData data, Inventory inventory) {
+        GuiSlot display = definition.getBuildDisplay();
+        if (display == null) {
+            return;
+        }
+        ItemStack item = display.createItem();
+        net.pytsing.qingcharms.build.BuildResolution resolution =
+                plugin.getBuildResolver().resolveEquipped(player, data);
+        if (!resolution.getActiveRules().isEmpty()) {
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                List<String> lore = new ArrayList<String>();
+                for (net.pytsing.qingcharms.build.BuildRule rule
+                        : resolution.getActiveRules()) {
+                    lore.add(MessageUtils.color("&e" + rule.getName()));
+                    for (String line : rule.getAddLore()) {
+                        lore.add(MessageUtils.color(line));
+                    }
+                }
+                meta.setLore(lore);
+                item.setItemMeta(meta);
+            }
+        }
+        inventory.setItem(display.getSlot(), item);
     }
 
     private void restoreEquipment(PlayerData playerData, Map<String, ItemStack> previous,

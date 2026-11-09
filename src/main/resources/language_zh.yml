@@ -38,7 +38,7 @@ command:
     qc-items: "&aqcItems"
     attributes: "&8    属性: &f{0}"
   build:
-    header: "&6当前职业构筑推荐："
+    header: "&6当前饰品构筑："
     classes: "&7当前职业：&f{0}"
     tags: "&7契合特质：&b{0}"
     rules: "&6已激活羁绊：&d{0}"
@@ -56,6 +56,11 @@ command:
     already-exists: "&cqcItems 中已存在护符 {0}；加 -f 可覆盖。"
     config-conflict: "&cconfig.yml 中已启用同 ID 护符 {0}；请先移除或禁用旧定义。"
     failed: "&c导出手中物品失败，请查看控制台。"
+    failed-v3: "&c导出失败，已保留原模板、装备定义和背包，请查看控制台。"
+    recovery-failed-v3: "&4导出失败且恢复不完整，请立即联系管理员检查控制台及模板、背包。"
+    no-space-v3: "&c背包空间不足，无法收纳手持堆叠的剩余物品；请腾出空间后重试。"
+    duplicate-id-v3: "&cqcItems 中有多个文件使用 ID {0}；请先保留唯一模板，再导出。"
+    signed-v3: "&a签名饰品已留在手上；请在饰品 GUI 内右键装备。"
     success: "&a已将手中物品导出为护符 {0}：{1}"
     overwritten: "&e已覆盖护符 {0}：{1}"
     no-type: "&cLore 中没有 GUI 槽位类型标记；请添加一个 type 原文后再导出。"
@@ -120,6 +125,7 @@ gui:
   slot-no-permission: "&c你没有权限使用该 GUI 格子。"
   selected: "&e已选择护符：&f{0} &7({1})"
   equip:
+    duplicate: "&c同一饰品不能重复装备。"
     no-type: "&c该格子没有设置可装备类型。"
     no-selection: "&c请先选择要装备的护符。"
     use-right-click: "&c请在背包中右键护符装备，Shift+右键替换。"
